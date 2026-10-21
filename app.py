@@ -47,9 +47,16 @@ if configuracao_disponivel():
         st.success("Conectado ao Supabase")
     except Exception as erro:
         tipo_erro = type(erro).__name__
-        print(f"Falha na consulta ao Supabase. Tipo: {tipo_erro}")
-        st.error("Não foi possível consultar o Supabase.")
-        st.info(f"Tipo do erro: {tipo_erro}")
+        if isinstance(erro, ModuleNotFoundError):
+            # O nome do módulo ausente não contém credenciais.
+            modulo = erro.name or "desconhecido"
+            print(f"ProjectFlow AI: módulo ausente: {modulo}")
+            st.error("Não foi possível consultar o Supabase.")
+            st.info(f"Tipo do erro: {tipo_erro} | Módulo ausente: {modulo}")
+        else:
+            print(f"ProjectFlow AI: falha de consulta ({tipo_erro})")
+            st.error("Não foi possível consultar o Supabase.")
+            st.info(f"Tipo do erro: {tipo_erro}")
         st.stop()
 else:
     projetos = dados_demo()
