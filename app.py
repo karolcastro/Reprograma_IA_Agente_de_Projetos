@@ -45,8 +45,11 @@ if configuracao_disponivel():
     try:
         projetos = buscar_projetos()
         st.success("Conectado ao Supabase")
-    except Exception:
-        st.error("Não foi possível consultar o Supabase. Confira as configurações de conexão.")
+    except Exception as erro:
+        tipo_erro = type(erro).__name__
+        print(f"Falha na consulta ao Supabase. Tipo: {tipo_erro}")
+        st.error("Não foi possível consultar o Supabase.")
+        st.info(f"Tipo do erro: {tipo_erro}")
         st.stop()
 else:
     projetos = dados_demo()
