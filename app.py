@@ -20,10 +20,27 @@ def dados_demo():
     ]
 
 def buscar_projetos():
-    from supabase import create_client
-    cliente = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_SECRET_KEY"])
-    projetos = cliente.table("projetos").select("id,nome,responsavel,prazo,status").execute().data
-    pendencias = cliente.table("pendencias").select("projeto_id").eq("status", "aberta").execute().data
+    # Consultas REST evitam conflitos entre versões do SDK Python do Supabase.
+    # A chave secreta permanece somente no servidor do Streamlit.
+    import requests
+    base = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1"
+    headers = {"apikey": str(st.secrets["SUPABASE_SECRET_KEY"])}
+    resposta_projetos = requests.get(
+        base + "/projetos",
+        headers=headers,
+        params={"select": "id,nome,responsavel,prazo,status"},
+        timeout=15,
+    )
+    resposta_projetos.raise_for_status()
+    projetos = resposta_projetos.json()
+    resposta_pendencias = requests.get(
+        base + "/pendencias",
+        headers=headers,
+        params={"select": "projeto_id", "status": "eq.aberta"},
+        timeout=15,
+    )
+    resposta_pendencias.raise_for_status()
+    pendencias = resposta_pendencias.json()
     contagem = {}
     for item in pendencias:
         contagem[item["projeto_id"]] = contagem.get(item["projeto_id"], 0) + 1
