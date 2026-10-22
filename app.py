@@ -269,7 +269,7 @@ def pagina_atas_ia():
         grafico = alt.Chart(df_eventos).mark_circle(size=170).encode(
             x=alt.X("Data:T", title="Data da reunião", axis=alt.Axis(format="%d/%m/%Y")),
             y=alt.Y("Tipo:N", title=None, sort=ordem),
-            color=alt.Color("Tipo:N", legend=None,
+            color=alt.Color("Tipo:N", legend=alt.Legend(title="Legenda · tipo de acontecimento", orient="bottom"),
                             scale=alt.Scale(domain=ordem,
                                             range=["#2563eb", "#0d9488", "#d97706", "#dc2626"])),
             tooltip=["Data da reunião:N", "Tipo:N", "Descrição:N", "Ata:N"],
