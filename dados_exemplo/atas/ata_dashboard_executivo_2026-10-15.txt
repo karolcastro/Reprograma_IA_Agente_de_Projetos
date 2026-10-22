@@ -1,0 +1,9 @@
+ATA DE REUNIÃO — DASHBOARD EXECUTIVO
+Data: 15/10/2026
+Projeto: Dashboard Executivo
+Participantes: Bruno Lima, Fernanda Alves
+Resumo: Revisão dos indicadores e da navegação do painel.
+Decisão: aprovado o layout com indicadores executivos e filtros.
+Situação: nenhuma pendência aberta registrada nesta reunião.
+Prazo da entrega: 15/11/2026.
+Próxima reunião: 29/10/2026.
