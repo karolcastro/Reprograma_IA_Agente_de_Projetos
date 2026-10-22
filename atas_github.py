@@ -73,3 +73,25 @@ def consolidar_atas(atas):
                 })
     return {"atas": ordenadas, "categorias": categorias,
             "ultima_reuniao": ordenadas[-1]["data"] if ordenadas else None}
+
+def comparar_reunioes(atas):
+    """Comparação preliminar baseada em trechos explícitos; não usa modelo de IA."""
+    consolidado = consolidar_atas(atas)
+    ordenadas = consolidado["atas"]
+    if len(ordenadas) < 2:
+        return {"comparavel": False, "novas_decisoes": [], "atualizacoes": [],
+                "pendencias": [], "riscos": []}
+    anterior, recente = ordenadas[-2], ordenadas[-1]
+    ultimos = extrair_trechos(recente["texto"])
+    anteriores = extrair_trechos(anterior["texto"])
+    decisoes_anteriores = {normalizar(s) for s in anteriores["Decisões"]}
+    return {
+        "comparavel": True,
+        "reuniao_anterior": anterior["data"],
+        "reuniao_recente": recente["data"],
+        "novas_decisoes": [s for s in ultimos["Decisões"]
+                           if normalizar(s) not in decisoes_anteriores],
+        "atualizacoes": ultimos["Atualizações"],
+        "pendencias": ultimos["Pendências"],
+        "riscos": ultimos["Riscos e gargalos"],
+    }
