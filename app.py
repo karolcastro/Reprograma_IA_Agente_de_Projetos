@@ -215,59 +215,48 @@ def pagina_detalhes():
                 st.warning("Não foi possível carregar esta seção.")
 
 def pagina_atas_ia():
-    st.title("🤖 Análise de atas")
-    st.caption("Etapa 1 • Envio de atas e revisão antes de registrar informações")
-    st.info("Nesta primeira versão, a pré-análise usa regras simples, não um modelo de IA. "
-            "A integração com IA será adicionada em uma próxima etapa.")
+    from atas_github import atas_do_projeto, extrair_trechos
+
+    st.title("🤖 Inteligência das atas")
+    st.caption("Leitura automática da pasta centralizada de atas fictícias no GitHub")
+    st.info("Protótipo com extração baseada em regras. A interpretação por IA virá depois.")
     if not projetos:
-        st.warning("Cadastre um projeto antes de analisar atas.")
+        st.warning("Não há projetos cadastrados.")
         return
-    projeto_nome = st.selectbox("Projeto relacionado à ata", [p["nome"] for p in projetos])
-    arquivo = st.file_uploader("Envie uma ata em texto (.txt)", type=["txt"])
-    texto_colado = st.text_area("Ou cole o conteúdo da ata", height=180,
-                                placeholder="Cole aqui o texto de uma reunião fictícia...")
-    conteudo = texto_colado.strip()
-    if arquivo is not None:
-        try:
-            conteudo = arquivo.getvalue().decode("utf-8-sig")
-        except UnicodeDecodeError:
-            st.error("Salve o arquivo como texto UTF-8 e tente novamente.")
-            return
-    if len(conteudo) > 30000:
-        st.warning("A ata deve ter no máximo 30 mil caracteres nesta versão.")
+    nome = st.selectbox("Selecione o projeto", [p["nome"] for p in projetos])
+    if st.button("Buscar atas do projeto", type="primary"):
+        with st.spinner("Consultando pasta de atas no GitHub..."):
+            try:
+                st.session_state["atas_encontradas"] = {
+                    "projeto": nome,
+                    "atas": atas_do_projeto(nome),
+                }
+            except requests.RequestException:
+                st.error("Não foi possível consultar a pasta no GitHub. Tente novamente.")
+                return
+    resultado = st.session_state.get("atas_encontradas", {})
+    if resultado.get("projeto") != nome:
+        st.info("Clique em 'Buscar atas do projeto' para consultar os documentos.")
         return
-    if st.button("Analisar ata", type="primary"):
-        if not conteudo.strip():
-            st.warning("Envie um arquivo ou cole uma ata para começar.")
-            return
-        st.session_state["analise_ata"] = {
-            "projeto": projeto_nome, "texto": conteudo
-        }
-    analise = st.session_state.get("analise_ata")
-    if not analise:
+    atas = resultado.get("atas", [])
+    st.metric("Atas encontradas", len(atas))
+    if not atas:
+        st.info("Nenhuma ata identificada para este projeto.")
         return
-    if analise["projeto"] != projeto_nome or analise["texto"] != conteudo:
-        st.info("Clique em 'Analisar ata' para atualizar a análise.")
-        return
-    st.subheader("Prévia para revisão")
-    st.caption("Os trechos abaixo são sugestões e podem estar incompletos.")
-    linhas = [linha.strip(" •-\\t") for linha in conteudo.splitlines() if linha.strip()]
-    grupos = {
-        "Pendências e ações": ("pendente", "pendência", "ação:", "responsável:", "tarefa:", "deverá"),
-        "Decisões": ("decidido", "decisão", "aprovado", "definido", "acordado"),
-        "Gargalos e riscos": ("risco", "bloqueio", "gargalo", "impedimento", "atraso"),
-        "Prazos": ("prazo", "deadline", "entrega", "até dia", "vencimento"),
-    }
-    for titulo, palavras in grupos.items():
-        achados = [linha for linha in linhas if any(p in linha.lower() for p in palavras)]
-        with st.expander(f"{titulo} ({len(achados)})", expanded=True):
-            if achados:
-                for trecho in achados:
-                    st.write("• " + trecho)
-            else:
-                st.caption("Nenhum trecho identificado pelas regras atuais.")
-    st.warning("Nada foi enviado ao Supabase. Revise os resultados antes de qualquer registro.")
-    st.caption("Use apenas atas fictícias ou autorizadas. Evite informações confidenciais.")
+    st.subheader("Linha do tempo das reuniões")
+    for ata in atas:
+        with st.expander(f"{ata['data']} · {ata['arquivo']}", expanded=True):
+            grupos = extrair_trechos(ata["texto"])
+            for categoria, trechos in grupos.items():
+                if trechos:
+                    st.markdown(f"**{categoria}**")
+                    for trecho in trechos:
+                        st.write("• " + trecho)
+            with st.expander("Ver ata completa"):
+                st.text(ata["texto"])
+    st.caption("Fonte: pasta dados_exemplo/atas no GitHub. Nenhuma informação foi gravada no Supabase.")
+    st.warning("A leitura automática não determina sozinha se uma pendência foi concluída. "
+               "Mudanças entre atas ainda precisam de revisão humana.")
 
 if configurado() and not st.session_state.get("autorizado", False):
     st.title("ProjectFlow AI")
