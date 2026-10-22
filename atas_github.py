@@ -55,3 +55,21 @@ def extrair_trechos(texto):
         )]
         for categoria, prefixos in categorias.items()
     }
+
+def consolidar_atas(atas):
+    """Consolida evidências de todas as reuniões, sem inferir conclusão de tarefas."""
+    from datetime import datetime
+    ordenadas = sorted(atas, key=lambda a: (
+        datetime.strptime(a["data"], "%d/%m/%Y") if a["data"] != "Não informada"
+        else datetime.min
+    ))
+    categorias = {"Pendências": [], "Decisões": [], "Riscos e gargalos": [],
+                  "Prazos": [], "Atualizações": []}
+    for ata in ordenadas:
+        for categoria, trechos in extrair_trechos(ata["texto"]).items():
+            for trecho in trechos:
+                categorias[categoria].append({
+                    "texto": trecho, "data": ata["data"], "arquivo": ata["arquivo"]
+                })
+    return {"atas": ordenadas, "categorias": categorias,
+            "ultima_reuniao": ordenadas[-1]["data"] if ordenadas else None}
