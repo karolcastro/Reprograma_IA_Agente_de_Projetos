@@ -33,6 +33,7 @@ st.markdown("""
 
 CORES = {"verde": "#1d9b64", "amarelo": "#e3a324", "vermelho": "#dc4b56"}
 ROTULOS = {"verde": "Em dia", "amarelo": "Atenção", "vermelho": "Atrasado"}
+CLASSES_FAROL = {"verde": "green", "amarelo": "yellow", "vermelho": "red"}
 
 def configurado():
     return all(k in st.secrets for k in ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "APP_PASSWORD"))
@@ -112,7 +113,7 @@ def pagina_dashboard():
                 responsavel = html.escape(str(p.get("responsavel") or "Não definido"))
                 st.markdown(
                     f'<div class="project-card" style="border-top: 5px solid {CORES[situacao]}">'
-                    f'<span class="pill {{"verde":"green","amarelo":"yellow","vermelho":"red"}[situacao]}">'
+                    f'<span class="pill {CLASSES_FAROL[situacao]}">'
                     f'{ROTULOS[situacao]}</span><h3>{nome}</h3>'
                     f'<p>Responsável: {responsavel}</p>'
                     f'<p>Entrega: {formatar_data(p["prazo"])} · Pendências: {p["pendencias"]}</p>'
@@ -169,7 +170,7 @@ def pagina_detalhes():
         st.info("Selecione um projeto na página Visão executiva.")
         return
     st.title(projeto["nome"])
-    st.markdown(f'<span class="pill {{"verde":"green","amarelo":"yellow","vermelho":"red"}[projeto["farol"]]}">'
+    st.markdown(f'<span class="pill {CLASSES_FAROL[projeto["farol"]]}">'
                 f'{ROTULOS[projeto["farol"]]}</span>', unsafe_allow_html=True)
     st.write(f"**Responsável:** {projeto.get('responsavel') or 'Não definido'}")
     a, b, c = st.columns(3)
