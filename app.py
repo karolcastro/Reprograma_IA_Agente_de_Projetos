@@ -244,6 +244,49 @@ def pagina_atas_ia():
         st.info("Nenhuma ata identificada para este projeto.")
         return
     consolidado = consolidar_atas(atas)
+    st.subheader("Evolução histórica das reuniões")
+    st.caption("Linha do tempo dos registros das atas. Os pontos não representam percentual de execução.")
+    eventos = []
+    for categoria, tipo in [
+        ("Decisões", "Decisão"),
+        ("Atualizações", "Atualização"),
+        ("Pendências", "Pendência"),
+        ("Riscos e gargalos", "Risco ou gargalo"),
+    ]:
+        for item in consolidado["categorias"][categoria]:
+            data_evento = pd.to_datetime(item["data"], format="%d/%m/%Y", errors="coerce")
+            if pd.notna(data_evento):
+                eventos.append({
+                    "Data": data_evento,
+                    "Tipo": tipo,
+                    "Descrição": item["texto"],
+                    "Ata": item["arquivo"],
+                    "Data da reunião": item["data"],
+                })
+    if eventos:
+        df_eventos = pd.DataFrame(eventos)
+        ordem = ["Decisão", "Atualização", "Pendência", "Risco ou gargalo"]
+        grafico = alt.Chart(df_eventos).mark_circle(size=170).encode(
+            x=alt.X("Data:T", title="Data da reunião", axis=alt.Axis(format="%d/%m/%Y")),
+            y=alt.Y("Tipo:N", title=None, sort=ordem),
+            color=alt.Color("Tipo:N", legend=None,
+                            scale=alt.Scale(domain=ordem,
+                                            range=["#2563eb", "#0d9488", "#d97706", "#dc2626"])),
+            tooltip=["Data da reunião:N", "Tipo:N", "Descrição:N", "Ata:N"],
+        )
+        st.altair_chart(grafico.properties(height=250).interactive(),
+                        use_container_width=True)
+        st.markdown("**Principais decisões por reunião**")
+        decisoes = df_eventos[df_eventos["Tipo"] == "Decisão"].sort_values("Data")
+        if decisoes.empty:
+            st.info("Nenhuma decisão identificada nas atas.")
+        else:
+            for _, decisao in decisoes.iterrows():
+                st.markdown("**" + html.escape(decisao["Data da reunião"]) +
+                            "** · " + html.escape(decisao["Descrição"]))
+                st.caption("Fonte: " + decisao["Ata"])
+    else:
+        st.info("Não há eventos com datas válidas para exibir no gráfico.")
     st.subheader("Resumo consolidado do projeto")
     st.caption("Reúne evidências de todas as atas, em ordem cronológica. "
                "Não usa modelo de IA e não confirma automaticamente o status das tarefas.")
