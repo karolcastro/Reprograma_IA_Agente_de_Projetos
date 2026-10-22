@@ -1,0 +1,9 @@
+ATA DE REUNIÃO — IMPLANTAÇÃO ERP
+Data: 10/10/2026
+Projeto: Implantação ERP
+Participantes: Ana Souza, Marcos Oliveira, Julia Reis
+Resumo: Revisão da integração entre o ERP e o financeiro.
+Decisão: aprovada a proposta de integração por API.
+Pendência: Ana Souza deve validar o mapeamento de dados com a equipe financeira até 28/10/2026.
+Risco: a liberação de acessos pelo fornecedor ainda não foi confirmada.
+Próxima reunião: 20/10/2026.
