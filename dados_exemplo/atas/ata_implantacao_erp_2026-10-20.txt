@@ -1,0 +1,10 @@
+ATA DE REUNIÃO — IMPLANTAÇÃO ERP
+Data: 20/10/2026
+Projeto: Implantação ERP
+Participantes: Ana Souza, Marcos Oliveira, Julia Reis
+Resumo: A equipe iniciou os testes da integração financeira.
+Decisão: manter o prazo final de 30/11/2026.
+Pendência: a validação do mapeamento de dados atribuída a Ana Souza continua aberta, com prazo em 28/10/2026.
+Atualização: o fornecedor liberou os acessos que estavam pendentes na reunião de 10/10/2026.
+Risco: eventuais divergências nos testes de integração podem afetar a homologação.
+Próxima reunião: 27/10/2026.
