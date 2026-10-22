@@ -1,0 +1,10 @@
+ATA DE REUNIÃO — INTEGRAÇÃO DE APIS
+Data: 18/10/2026
+Projeto: Integração de APIs
+Participantes: Carla Mendes, Rafael Costa
+Resumo: Revisão da falha de autenticação entre sistemas.
+Pendência: Carla Mendes deve corrigir a autenticação da API; prazo original 09/10/2026, ainda não concluído.
+Gargalo: a falha impede a troca automática de dados.
+Decisão: priorizar a correção antes de iniciar novas integrações.
+Risco: entrega prevista para 10/10/2026 já está atrasada.
+Próxima reunião: 23/10/2026.
