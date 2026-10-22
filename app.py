@@ -214,6 +214,61 @@ def pagina_detalhes():
             except requests.RequestException:
                 st.warning("Não foi possível carregar esta seção.")
 
+def pagina_atas_ia():
+    st.title("🤖 Análise de atas")
+    st.caption("Etapa 1 • Envio de atas e revisão antes de registrar informações")
+    st.info("Nesta primeira versão, a pré-análise usa regras simples, não um modelo de IA. "
+            "A integração com IA será adicionada em uma próxima etapa.")
+    if not projetos:
+        st.warning("Cadastre um projeto antes de analisar atas.")
+        return
+    projeto_nome = st.selectbox("Projeto relacionado à ata", [p["nome"] for p in projetos])
+    arquivo = st.file_uploader("Envie uma ata em texto (.txt)", type=["txt"])
+    texto_colado = st.text_area("Ou cole o conteúdo da ata", height=180,
+                                placeholder="Cole aqui o texto de uma reunião fictícia...")
+    conteudo = texto_colado.strip()
+    if arquivo is not None:
+        try:
+            conteudo = arquivo.getvalue().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            st.error("Salve o arquivo como texto UTF-8 e tente novamente.")
+            return
+    if len(conteudo) > 30000:
+        st.warning("A ata deve ter no máximo 30 mil caracteres nesta versão.")
+        return
+    if st.button("Analisar ata", type="primary"):
+        if not conteudo.strip():
+            st.warning("Envie um arquivo ou cole uma ata para começar.")
+            return
+        st.session_state["analise_ata"] = {
+            "projeto": projeto_nome, "texto": conteudo
+        }
+    analise = st.session_state.get("analise_ata")
+    if not analise:
+        return
+    if analise["projeto"] != projeto_nome or analise["texto"] != conteudo:
+        st.info("Clique em 'Analisar ata' para atualizar a análise.")
+        return
+    st.subheader("Prévia para revisão")
+    st.caption("Os trechos abaixo são sugestões e podem estar incompletos.")
+    linhas = [linha.strip(" •-\\t") for linha in conteudo.splitlines() if linha.strip()]
+    grupos = {
+        "Pendências e ações": ("pendente", "pendência", "ação:", "responsável:", "tarefa:", "deverá"),
+        "Decisões": ("decidido", "decisão", "aprovado", "definido", "acordado"),
+        "Gargalos e riscos": ("risco", "bloqueio", "gargalo", "impedimento", "atraso"),
+        "Prazos": ("prazo", "deadline", "entrega", "até dia", "vencimento"),
+    }
+    for titulo, palavras in grupos.items():
+        achados = [linha for linha in linhas if any(p in linha.lower() for p in palavras)]
+        with st.expander(f"{titulo} ({len(achados)})", expanded=True):
+            if achados:
+                for trecho in achados:
+                    st.write("• " + trecho)
+            else:
+                st.caption("Nenhum trecho identificado pelas regras atuais.")
+    st.warning("Nada foi enviado ao Supabase. Revise os resultados antes de qualquer registro.")
+    st.caption("Use apenas atas fictícias ou autorizadas. Evite informações confidenciais.")
+
 if configurado() and not st.session_state.get("autorizado", False):
     st.title("ProjectFlow AI")
     with st.form("acesso"):
@@ -235,6 +290,7 @@ except Exception as erro:
 
 pagina_principal = st.Page(pagina_dashboard, title="Visão executiva", icon="📊", default=True)
 pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="📁")
+pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
@@ -242,5 +298,5 @@ with st.sidebar:
         st.session_state["autorizado"] = False
         st.rerun()
 
-navegacao = st.navigation([pagina_principal, pagina_detalhe])
+navegacao = st.navigation([pagina_principal, pagina_detalhe, pagina_atas])
 navegacao.run()
