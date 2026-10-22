@@ -108,4 +108,57 @@ for p in filtrados:
         col2.write(f"Pendências abertas: {p['pendencias']}")
         col3.markdown(f"### {icones[p['farol']]} {p['farol'].capitalize()}")
 
-st.caption("Protótipo • Integração com atas, IA e automações em desenvolvimento")
+
+st.divider()
+st.subheader("🔎 Detalhamento do projeto")
+if not filtrados:
+    st.info("Nenhum projeto corresponde ao filtro selecionado.")
+else:
+    escolhido = st.selectbox("Selecione um projeto", [p["nome"] for p in filtrados])
+    projeto = next(p for p in filtrados if p["nome"] == escolhido)
+    st.markdown(f"### {icones[projeto['farol']]} {projeto['nome']}")
+    x, y, z = st.columns(3)
+    x.metric("Farol", projeto["farol"].capitalize())
+    y.metric("Pendências abertas", projeto["pendencias"])
+    z.metric("Prazo", date.fromisoformat(str(projeto["prazo"])).strftime("%d/%m/%Y"))
+    st.write(f"**Responsável:** {projeto['responsavel'] or 'Não definido'}")
+    st.write(f"**Status:** {projeto['status'].replace('_', ' ').capitalize()}")
+
+    if configuracao_disponivel():
+        import requests
+
+        def buscar_registros(tabela, campos, identificador):
+            base = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1"
+            resposta = requests.get(
+                f"{base}/{tabela}",
+                headers={"apikey": str(st.secrets["SUPABASE_SECRET_KEY"])},
+                params={"select": campos, "projeto_id": f"eq.{identificador}", "order": "id.desc"},
+                timeout=15,
+            )
+            resposta.raise_for_status()
+            return resposta.json()
+
+        abas = st.tabs(["📋 Pendências", "🚧 Gargalos", "📝 Atas", "🕓 Histórico"])
+        configuracoes = [
+            ("pendencias", "descricao,responsavel,prazo,status,origem,id"),
+            ("gargalos", "descricao,impacto,status,id"),
+            ("atas", "titulo,data_reuniao,resumo,decisoes,id"),
+            ("historico", "descricao,origem,criado_em,id"),
+        ]
+        for aba, (tabela, campos) in zip(abas, configuracoes):
+            with aba:
+                try:
+                    registros = buscar_registros(tabela, campos, projeto["id"])
+                    if registros:
+                        for registro in registros:
+                            registro.pop("id", None)
+                        st.dataframe(registros, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("Ainda não há registros nesta seção.")
+                except requests.RequestException:
+                    st.warning("Não foi possível carregar esta seção. Tente novamente.")
+    else:
+        st.info("Detalhes de pendências, gargalos, atas e histórico estarão disponíveis após conectar o Supabase.")
+
+st.caption("ProjectFlow AI • Gestão de projetos integrada ao Supabase")
+
