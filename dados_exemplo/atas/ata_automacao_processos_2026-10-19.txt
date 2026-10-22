@@ -1,0 +1,10 @@
+ATA DE REUNIÃO — AUTOMAÇÃO DE PROCESSOS
+Data: 19/10/2026
+Projeto: Automação de Processos
+Participantes: Diego Costa, Beatriz Nunes
+Resumo: Revisão do fluxo de aprovação automatizado.
+Decisão: manter o escopo original e replanejar a entrega.
+Gargalo: dependência de homologação pela área solicitante.
+Risco: prazo de 15/10/2026 ultrapassado.
+Situação: nenhuma pendência individual registrada na ata; atraso do projeto permanece.
+Próxima reunião: 26/10/2026.
