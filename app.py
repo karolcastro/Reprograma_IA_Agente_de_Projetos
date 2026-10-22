@@ -215,7 +215,7 @@ def pagina_detalhes():
                 st.warning("Não foi possível carregar esta seção.")
 
 def pagina_atas_ia():
-    from atas_github import atas_do_projeto, extrair_trechos, consolidar_atas
+    from atas_github import atas_do_projeto, extrair_trechos, consolidar_atas, comparar_reunioes
 
     st.title("🤖 Inteligência das atas")
     st.caption("Leitura automática da pasta centralizada de atas fictícias no GitHub")
@@ -244,6 +244,43 @@ def pagina_atas_ia():
         st.info("Nenhuma ata identificada para este projeto.")
         return
     consolidado = consolidar_atas(atas)
+    st.subheader("O que mudou desde a reunião anterior?")
+    comparacao = comparar_reunioes(atas)
+    if not comparacao["comparavel"]:
+        st.info("É necessário ter pelo menos duas atas para comparar reuniões.")
+    else:
+        st.caption("Comparação entre " + comparacao["reuniao_anterior"] +
+                   " e " + comparacao["reuniao_recente"] +
+                   ". Informações extraídas literalmente das atas.")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Novas decisões registradas**")
+            if comparacao["novas_decisoes"]:
+                for trecho in comparacao["novas_decisoes"]:
+                    st.write("• " + trecho)
+            else:
+                st.caption("Nenhuma nova decisão identificada pelas regras.")
+            st.markdown("**Atualizações da última reunião**")
+            if comparacao["atualizacoes"]:
+                for trecho in comparacao["atualizacoes"]:
+                    st.write("• " + trecho)
+            else:
+                st.caption("Nenhuma atualização explícita.")
+        with col2:
+            st.markdown("**Pendências mencionadas na última reunião**")
+            if comparacao["pendencias"]:
+                for trecho in comparacao["pendencias"]:
+                    st.write("• " + trecho)
+            else:
+                st.caption("Nenhuma pendência explícita.")
+            st.markdown("**Riscos mencionados na última reunião**")
+            if comparacao["riscos"]:
+                for trecho in comparacao["riscos"]:
+                    st.write("• " + trecho)
+            else:
+                st.caption("Nenhum risco explícito.")
+        st.caption("A ausência de uma pendência na ata recente não significa conclusão. "
+                   "A análise ainda não é feita por um modelo de IA.")
     st.subheader("Evolução histórica das reuniões")
     st.caption("Linha do tempo dos registros das atas. Os pontos não representam percentual de execução.")
     eventos = []
