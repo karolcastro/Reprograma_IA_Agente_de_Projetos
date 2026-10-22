@@ -215,7 +215,7 @@ def pagina_detalhes():
                 st.warning("Não foi possível carregar esta seção.")
 
 def pagina_atas_ia():
-    from atas_github import atas_do_projeto, extrair_trechos
+    from atas_github import atas_do_projeto, extrair_trechos, consolidar_atas
 
     st.title("🤖 Inteligência das atas")
     st.caption("Leitura automática da pasta centralizada de atas fictícias no GitHub")
@@ -243,6 +243,21 @@ def pagina_atas_ia():
     if not atas:
         st.info("Nenhuma ata identificada para este projeto.")
         return
+    consolidado = consolidar_atas(atas)
+    st.subheader("Resumo consolidado do projeto")
+    st.caption("Reúne evidências de todas as atas, em ordem cronológica. "
+               "Não usa modelo de IA e não confirma automaticamente o status das tarefas.")
+    st.write(f"**Última reunião identificada:** {consolidado['ultima_reuniao']}")
+    for categoria, itens in consolidado["categorias"].items():
+        with st.expander(f"{categoria} · {len(itens)} registro(s)", expanded=categoria == "Pendências"):
+            if not itens:
+                st.caption("Nenhum registro identificado.")
+            for item in itens:
+                st.write(f"**{item['data']}** — {item['texto']}")
+                st.caption(f"Fonte: {item['arquivo']}")
+    st.info("Compare os registros acima para verificar mudanças entre reuniões. "
+            "Uma atualização pode indicar que um risco foi resolvido, mas isso "
+            "não encerra automaticamente uma pendência no banco de dados.")
     st.subheader("Linha do tempo das reuniões")
     for ata in atas:
         with st.expander(f"{ata['data']} · {ata['arquivo']}", expanded=True):
