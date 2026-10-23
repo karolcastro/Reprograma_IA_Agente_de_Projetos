@@ -515,9 +515,24 @@ def pagina_atas_ia():
     st.warning("A leitura automática não determina sozinha se uma pendência foi concluída. "
                "Mudanças entre atas ainda precisam de revisão humana.")
 
+def alterar_vinculo(tabela, acao, dados):
+    """Operação autenticada; RLS e auditoria são aplicadas no banco."""
+    if tabela not in ("projeto_acessos", "squad_membros") or acao not in ("adicionar", "remover"):
+        raise ValueError("Operação inválida.")
+    base = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
+    cabecalhos = dict(cabecalhos_usuario())
+    cabecalhos["Prefer"] = "return=minimal"
+    if acao == "adicionar":
+        resposta = requests.post(base, headers=cabecalhos, json=dados, timeout=15)
+    else:
+        filtros = {chave: "eq." + str(valor) for chave, valor in dados.items()}
+        resposta = requests.delete(base, headers=cabecalhos, params=filtros, timeout=15)
+    resposta.raise_for_status()
+
+
 def pagina_administracao():
     st.title("🛡️ Administração de usuários")
-    st.caption("Consulta restrita a administradores · Dados do Supabase")
+    st.caption("Acesso restrito a administradores · Permissões auditadas no banco")
     if perfil[0].get("perfil_global") != "admin":
         st.error("Acesso restrito.")
         return
@@ -562,7 +577,61 @@ def pagina_administracao():
         st.dataframe(linhas_squad,hide_index=True,use_container_width=True)
     else:
         st.info("Nenhuma squad vinculada.")
-    st.info("Edição desabilitada nesta fase. Alterações futuras terão validação no banco e trilha de auditoria.")
+    st.divider()
+    st.subheader("Gerenciar vínculos")
+    st.caption("Alterações aplicadas imediatamente. Cada inclusão ou remoção gera registro de auditoria no banco.")
+    tipo = st.radio("Tipo de acesso", ["Projetos", "Squads"], horizontal=True)
+    if tipo == "Projetos":
+        tabela, coluna = "projeto_acessos", "projeto_id"
+        opcoes = sorted(projetos, key=lambda p:p["nome"])
+        rotulo = lambda p:p["nome"]
+        registros = acessos
+        papeis = ["gerente", "lider", "membro", "leitor"]
+    else:
+        tabela, coluna = "squad_membros", "squad_id"
+        opcoes = sorted(equipes, key=lambda e:e["nome"])
+        rotulo = lambda e:e["nome"]
+        registros = membros
+        papeis = ["lider", "membro"]
+    existentes = {r[coluna]:r["papel"] for r in registros if r["usuario_id"]==identificador}
+    operacao = st.radio("Operação", ["Conceder acesso", "Revogar acesso"], horizontal=True)
+    if operacao == "Conceder acesso":
+        disponiveis = [p for p in opcoes if p["id"] not in existentes]
+        if not disponiveis:
+            st.info("Este usuário já possui acesso a todos os itens deste tipo.")
+        else:
+            item = st.selectbox("Conceder acesso a", disponiveis, format_func=rotulo)
+            papel_novo = st.selectbox("Papel", papeis)
+            confirmar = st.checkbox("Confirmo a concessão deste acesso", key="confirma_concessao")
+            if st.button("Conceder acesso", disabled=not confirmar, type="primary"):
+                try:
+                    alterar_vinculo(tabela, "adicionar",
+                        {"usuario_id":identificador, coluna:item["id"], "papel":papel_novo})
+                except requests.RequestException:
+                    st.error("Operação não autorizada ou indisponível. Nenhuma confirmação de alteração.")
+                else:
+                    st.success("Acesso concedido e registrado para auditoria.")
+                    st.rerun()
+    else:
+        revogaveis = [p for p in opcoes if p["id"] in existentes]
+        if selecionado.get("perfil_global") == "admin":
+            st.warning("A revogação de vínculos de administradores está bloqueada nesta interface.")
+        elif not revogaveis:
+            st.info("Este usuário não possui vínculos deste tipo.")
+        else:
+            item = st.selectbox("Revogar acesso a", revogaveis, format_func=rotulo)
+            st.warning("A revogação retira imediatamente a visibilidade deste item.")
+            confirmar = st.checkbox("Confirmo a revogação deste acesso", key="confirma_revogacao")
+            if st.button("Revogar acesso", disabled=not confirmar, type="primary"):
+                try:
+                    alterar_vinculo(tabela, "remover",
+                        {"usuario_id":identificador, coluna:item["id"]})
+                except requests.RequestException:
+                    st.error("Operação não autorizada ou indisponível. Nenhuma confirmação de alteração.")
+                else:
+                    st.success("Acesso revogado e registrado para auditoria.")
+                    st.rerun()
+
 
 def pagina_squads():
     st.title("👥 Minhas squads e acessos")
@@ -657,7 +726,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: admin-20261023-03")
+    st.caption("Versão: admin-20261023-04")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
