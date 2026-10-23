@@ -798,6 +798,47 @@ def pagina_administracao():
     c.metric("Squads", len(equipes))
     mapa_projetos = {p["id"]: p["nome"] for p in projetos}
     mapa_equipes = {e["id"]: e["nome"] for e in equipes}
+    st.subheader("📊 Pessoas e projetos — visão consolidada")
+    st.caption("Contagem de participantes únicos por projeto, com vínculo direto em Acessos. Uma pessoa pode atuar em vários projetos; squads não duplicam a contagem.")
+    usuarios_ativos = {u["id"]: u for u in usuarios if u.get("ativo")}
+    ids_validos = set(mapa_projetos)
+    vinculos_validos = {(a["usuario_id"], a["projeto_id"]): a["papel"] for a in acessos
+                       if a["usuario_id"] in usuarios_ativos and a["projeto_id"] in ids_validos}
+    por_projeto = {pid: [] for pid in ids_validos}
+    por_usuario = {uid: [] for uid in usuarios_ativos}
+    for (uid, pid), papel_vinculo in vinculos_validos.items():
+        por_projeto[pid].append((uid, papel_vinculo))
+        por_usuario[uid].append((pid, papel_vinculo))
+    met1, met2, met3 = st.columns(3)
+    met1.metric("Pessoas ativas com projetos", sum(bool(v) for v in por_usuario.values()))
+    met2.metric("Participações em projetos", len(vinculos_validos))
+    met3.metric("Média de projetos por pessoa", f"{len(vinculos_validos)/len(usuarios_ativos):.1f}" if usuarios_ativos else "0")
+    aba_projetos, aba_pessoas = st.tabs(["🏢 Pessoas por projeto", "👥 Projetos por pessoa"])
+    with aba_projetos:
+        linhas_projetos = []
+        for pid, nome_projeto in sorted(mapa_projetos.items(), key=lambda x:x[1].casefold()):
+            participantes = sorted(por_projeto.get(pid, []), key=lambda v:usuarios_ativos[v[0]]["nome"].casefold())
+            icone, _ = icone_tipo_projeto(nome_projeto)
+            linhas_projetos.append({
+                "Projeto": f"{icone} {nome_projeto}",
+                "Pessoas": len(participantes),
+                "Participantes e papéis": ", ".join(f'{usuarios_ativos[uid]["nome"]} ({papel})'
+                                                    for uid, papel in participantes) or "Nenhum vínculo",
+            })
+        st.dataframe(linhas_projetos, hide_index=True, use_container_width=True)
+    with aba_pessoas:
+        linhas_pessoas = []
+        for uid, pessoa in sorted(usuarios_ativos.items(), key=lambda x:x[1]["nome"].casefold()):
+            atribuicoes = sorted(por_usuario.get(uid, []), key=lambda v:mapa_projetos[v[0]].casefold())
+            linhas_pessoas.append({
+                "Pessoa": pessoa["nome"],
+                "Perfil": pessoa["perfil_global"],
+                "Projetos": len(atribuicoes),
+                "Projetos e papéis": ", ".join(f'{mapa_projetos[pid]} ({papel})'
+                                                for pid, papel in atribuicoes) or "Nenhum vínculo",
+            })
+        st.dataframe(linhas_pessoas, hide_index=True, use_container_width=True)
+    st.caption("Contagens de alocação, não de capacidade: uma participação não representa dedicação integral. Apenas usuários ativos são contados.")
     st.subheader("Cadastro central")
     st.caption("Somente nome, perfil e situação são exibidos. E-mails, senhas e tokens não aparecem neste painel.")
     st.dataframe([{"Nome":u["nome"], "Perfil":u["perfil_global"],
@@ -845,17 +886,27 @@ def pagina_administracao():
         if not disponiveis:
             st.info("Este usuário já possui acesso a todos os itens deste tipo.")
         else:
-            item = st.selectbox("Conceder acesso a", disponiveis, format_func=rotulo)
+            itens = st.multiselect("Conceder acesso a um ou mais " + ("projetos" if tipo == "Projetos" else "squads"),
+                                   disponiveis, format_func=rotulo,
+                                   help="Selecione vários itens. Cada vínculo terá seu próprio registro e permissão.")
             papel_novo = st.selectbox("Papel", papeis)
-            confirmar = st.checkbox("Confirmo a concessão deste acesso", key="confirma_concessao")
-            if st.button("Conceder acesso", disabled=not confirmar, type="primary"):
-                try:
-                    alterar_vinculo(tabela, "adicionar",
-                        {"usuario_id":identificador, coluna:item["id"], "papel":papel_novo})
-                except requests.RequestException:
-                    st.error("Operação não autorizada ou indisponível. Nenhuma confirmação de alteração.")
+            confirmar = st.checkbox("Confirmo a concessão dos acessos selecionados", key="confirma_concessao")
+            if st.button("Conceder acessos", disabled=not (confirmar and itens), type="primary"):
+                incluidos = 0
+                falhas = []
+                for item in itens:
+                    try:
+                        alterar_vinculo(tabela, "adicionar",
+                            {"usuario_id":identificador, coluna:item["id"], "papel":papel_novo})
+                        incluidos += 1
+                    except (requests.RequestException, PermissionError) as erro:
+                        falhas.append(rotulo(item))
+                if incluidos:
+                    st.success(f"{incluidos} vínculo(s) concedido(s) e enviado(s) para auditoria.")
+                if falhas:
+                    st.error("Não foi possível conceder acesso a: " + ", ".join(falhas) +
+                             ". Confira os vínculos antes de tentar novamente.")
                 else:
-                    st.success("Acesso concedido e registrado para auditoria.")
                     st.rerun()
     else:
         revogaveis = [p for p in opcoes if p["id"] in existentes]
@@ -1262,6 +1313,20 @@ def pagina_squads():
     a.metric("Minhas squads", len(equipes))
     b.metric("Projetos autorizados", len(ids_visiveis))
     c.metric("Vínculos com squads", len(membros))
+    st.subheader("📁 Meus projetos")
+    st.caption("O mesmo usuário pode participar de diversos projetos e squads. Cada projeto é contado uma única vez.")
+    linhas_meus_projetos = []
+    for p in sorted(projetos, key=lambda p:p["nome"].casefold()):
+        icone, categoria = icone_tipo_projeto(p["nome"])
+        linhas_meus_projetos.append({
+            "Projeto": f'{icone} {p["nome"]}',
+            "Tipo": categoria,
+            "Meu papel": acesso_por_projeto.get(p["id"], "Não informado"),
+        })
+    if linhas_meus_projetos:
+        st.dataframe(linhas_meus_projetos, hide_index=True, use_container_width=True)
+    else:
+        st.info("Você ainda não possui projetos autorizados.")
     st.markdown("**Legenda dos papéis:** gerente = gestão do projeto · líder = liderança · membro = participante · leitor = consulta.")
     st.caption("**Ícones por tipo de projeto:** 🏢 ERP · 📊 BI/Analytics · 🔗 Integração/Dados · ⚙️ Automação · 🛡️ Segurança · 💻 Aplicações · ☁️ Cloud · 📁 Geral.")
     st.caption("O tipo é sugerido a partir do nome do projeto; não altera os dados ou as permissões.")
@@ -1363,7 +1428,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-08")
+    st.caption("Versão: purple-tech-20261023-09")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
