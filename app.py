@@ -58,6 +58,22 @@ a {color:#5B21B6!important;}
 *:focus-visible {outline:3px solid #2563EB!important;outline-offset:3px;}
 @media(max-width:700px){.block-container{padding:1rem .8rem 2rem;}.project-card{min-height:auto;padding:1rem;}.block-container h1{font-size:1.8rem;}div[data-testid="stMetric"]{min-height:85px;padding:10px;}}
 
+/* Botões principais: texto branco em todos os elementos internos, incluindo Markdown */
+div[data-testid="stButton"] button[kind="primary"],
+div[data-testid="stFormSubmitButton"] button[kind="primary"] {
+  background:linear-gradient(110deg,#6D28D9,#1D4ED8)!important;
+  color:#FFFFFF!important;border:1px solid #5B21B6!important;
+}
+div[data-testid="stButton"] button[kind="primary"] *,
+div[data-testid="stFormSubmitButton"] button[kind="primary"] *,
+div[data-testid="stButton"] button[kind="primary"] p,
+div[data-testid="stFormSubmitButton"] button[kind="primary"] p {
+  color:#FFFFFF!important;opacity:1!important;
+}
+div[data-testid="stButton"] button[kind="primary"]:hover,
+div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover {
+  background:linear-gradient(110deg,#5B21B6,#1E40AF)!important;
+}
 /* Purple Tech — cartões de indicadores com variações cromáticas acessíveis */
 div[data-testid="stMetric"] {position:relative;overflow:hidden;box-shadow:0 7px 22px #5B42AA16!important;border-top:4px solid #7C3AED!important;background:linear-gradient(145deg,#FFFFFF,#F1EDFF)!important;}
 div[data-testid="stMetric"]::before {content:"";position:absolute;right:-25px;top:-34px;width:95px;height:95px;border-radius:50%;background:#C4B5FD30;pointer-events:none;}
@@ -1322,7 +1338,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-05")
+    st.caption("Versão: purple-tech-20261023-06")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
