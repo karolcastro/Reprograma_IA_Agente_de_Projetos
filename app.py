@@ -14,40 +14,45 @@ st.set_page_config(page_title="ProjectFlow AI", page_icon="📊", layout="wide")
 
 st.markdown("""
 <style>
-.block-container {max-width: 1240px; padding-top: 2rem;}
-[data-testid="stSidebar"] {background: #111c31;}
-[data-testid="stSidebar"] * {color: #eef3fa !important;}
-.project-card {padding: 1.25rem 1.3rem; border-radius: 16px; background: #fff;
-  border: 1px solid #e5eaf2; box-shadow: 0 5px 20px rgba(22,34,55,.05);
-  min-height: 170px; margin-bottom: .5rem;}
-.project-card h3 {margin: .65rem 0 .5rem; font-size: 1.2rem; color: #152238;}
-.project-card p {margin: .25rem 0; color: #56647a;}
-.pill {display: inline-block; padding: .28rem .7rem; border-radius: 999px;
-  font-size: .8rem; font-weight: 700;}
-.green {background:#e5f7ed; color:#12663b;}
-.yellow {background:#fff3d6; color:#956300;}
-.red {background:#ffe6e6; color:#a92c36;}
-.subtitle {color: #64748b; margin-top: -.5rem;}
-
-/* UX: hierarquia visual, foco acessível, leitura e adaptação mobile. */
-html {scroll-behavior:smooth;}
-.block-container h1 {letter-spacing:-.035em; font-weight:800; color:#14243d;}
-.block-container h2,.block-container h3 {letter-spacing:-.02em; color:#213450;}
-div[data-testid="stMetric"] {background:#f8fafc;border:1px solid #e5ebf3;
-  border-radius:14px;padding:14px 18px;min-height:100px;}
-div[data-testid="stMetricLabel"] {font-weight:600;}
-div[data-testid="stExpander"] {border:1px solid #e5ebf3;border-radius:12px;}
-div[data-testid="stButton"] button {border-radius:10px;font-weight:650;min-height:40px;}
-div[data-testid="stButton"] button:focus-visible,
-a:focus-visible {outline:3px solid #2563eb;outline-offset:3px;}
-div[data-testid="stAlert"] {border-radius:12px;}
-@media(max-width:700px) {
-  .block-container {padding:1rem .8rem 2rem;}
-  .project-card {min-height:auto;padding:1rem;}
-  .block-container h1 {font-size:1.8rem;}
-  div[data-testid="stMetric"] {min-height:85px;padding:10px;}
-}
-
+:root {color-scheme:dark; --pf-bg:#0C0B18; --pf-panel:#18152B; --pf-border:#39304F; --pf-text:#F4F1FF; --pf-muted:#C0B7D4; --pf-purple:#A78BFA; --pf-blue:#60A5FA;}
+html,body,[data-testid="stApp"],[data-testid="stMain"] {background:#0C0B18!important;color:#F4F1FF!important;}
+[data-testid="stApp"] {background:radial-gradient(ellipse at 95% 0%,#25204C 0%,#0C0B18 48%)!important;}
+.block-container {max-width:1280px;padding-top:2rem;padding-bottom:3rem;}
+.block-container h1 {color:#F4F1FF!important;font-weight:800;letter-spacing:-.035em;}
+.block-container h2,.block-container h3 {color:#E5DAFF!important;letter-spacing:-.02em;}
+[data-testid="stSidebar"] {background:linear-gradient(180deg,#19132F,#100F22)!important;border-right:1px solid #39304F;}
+[data-testid="stSidebar"] * {color:#F4F1FF!important;}
+[data-testid="stSidebarNav"] a[aria-current="page"] {background:#352658!important;border-radius:10px;}
+[data-testid="stSidebarNav"] a:hover {background:#2B2345!important;border-radius:10px;}
+p,li,label,[data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"],[data-testid="stMetricLabel"] {color:#E9E3F5;}
+[data-testid="stCaptionContainer"],small {color:#C0B7D4!important;}
+.project-card {padding:1.25rem 1.3rem;border-radius:16px;background:#1B1731;border:1px solid #403654;box-shadow:0 8px 24px #07061244;min-height:170px;margin-bottom:.5rem;}
+.project-card h3 {margin:.65rem 0 .5rem;font-size:1.2rem;color:#F4F1FF!important;}
+.project-card p {margin:.25rem 0;color:#CFC6E1;}
+.pill {display:inline-block;padding:.28rem .7rem;border-radius:999px;font-size:.8rem;font-weight:700;}
+.green {background:#123F36;color:#A7F3D0;}
+.yellow {background:#4B3514;color:#FDE68A;}
+.red {background:#4A2035;color:#FDA4AF;}
+.subtitle {color:#C0B7D4;margin-top:-.5rem;}
+div[data-testid="stMetric"],div[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stDataFrame"] {background:#1B1731!important;border:1px solid #403654!important;border-radius:14px!important;}
+div[data-testid="stMetric"] {padding:14px 18px;min-height:100px;}
+[data-testid="stMetricValue"] {color:#F4F1FF!important;}
+[data-testid="stMetricDelta"] {font-weight:650;}
+div[data-testid="stButton"] button,div[data-testid="stFormSubmitButton"] button {border-radius:11px!important;font-weight:700!important;min-height:42px;background:#302648!important;color:#F4F1FF!important;border:1px solid #6C5B8E!important;}
+div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(110deg,#6041C8,#4338CA)!important;color:#FFFFFF!important;border:1px solid #8B76EA!important;}
+div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] button:hover {background:#473569!important;border-color:#A78BFA!important;color:#FFFFFF!important;}
+div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover {background:#6D4DD7!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] {background:#402136!important;border:1px solid #BE607E!important;color:#FFE3EC!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#633048!important;color:#FFFFFF!important;}
+[data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"],[data-baseweb="popover"],[data-baseweb="menu"],[data-baseweb="calendar"] {background:#211B36!important;color:#F4F1FF!important;border-color:#57496D!important;}
+input,textarea {color:#F4F1FF!important;caret-color:#C4B5FD!important;}
+input::placeholder,textarea::placeholder {color:#AFA5C5!important;}
+[data-testid="stAlert"] {border-radius:12px;}
+[data-testid="stTabs"] [data-baseweb="tab"] {color:#D8CFF0!important;}
+[data-testid="stTabs"] [aria-selected="true"] {color:#C4B5FD!important;border-bottom-color:#A78BFA!important;}
+a {color:#BDA7FF!important;}
+*:focus-visible {outline:3px solid #A78BFA!important;outline-offset:3px;}
+@media(max-width:700px){.block-container{padding:1rem .8rem 2rem;}.project-card{min-height:auto;padding:1rem;}.block-container h1{font-size:1.8rem;}div[data-testid="stMetric"]{min-height:85px;padding:10px;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1287,8 +1292,8 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: senhas-20261023-01")
-    if st.button("Sair"):
+    st.caption("Versão: purple-midnight-20261023-01")
+    if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
