@@ -14,44 +14,46 @@ st.set_page_config(page_title="ProjectFlow AI", page_icon="📊", layout="wide")
 
 st.markdown("""
 <style>
-:root {color-scheme:dark; --pf-bg:#0C0B18; --pf-panel:#18152B; --pf-border:#39304F; --pf-text:#F4F1FF; --pf-muted:#C0B7D4; --pf-purple:#A78BFA; --pf-blue:#60A5FA;}
-html,body,[data-testid="stApp"],[data-testid="stMain"] {background:#0C0B18!important;color:#F4F1FF!important;}
-[data-testid="stApp"] {background:radial-gradient(ellipse at 95% 0%,#25204C 0%,#0C0B18 48%)!important;}
+:root {color-scheme:light;--pf-blue:#2563EB;--pf-violet:#7C3AED;--pf-ink:#211943;--pf-muted:#615779;--pf-border:#DDD6FE;}
+html,body,[data-testid="stApp"],[data-testid="stMain"] {background:#F8F7FF!important;color:#211943!important;}
+[data-testid="stApp"] {background:radial-gradient(ellipse at 95% 0%,#E6E9FF 0%,#F8F7FF 48%,#F5F1FF 100%)!important;}
 .block-container {max-width:1280px;padding-top:2rem;padding-bottom:3rem;}
-.block-container h1 {color:#F4F1FF!important;font-weight:800;letter-spacing:-.035em;}
-.block-container h2,.block-container h3 {color:#E5DAFF!important;letter-spacing:-.02em;}
-[data-testid="stSidebar"] {background:linear-gradient(180deg,#19132F,#100F22)!important;border-right:1px solid #39304F;}
-[data-testid="stSidebar"] * {color:#F4F1FF!important;}
-[data-testid="stSidebarNav"] a[aria-current="page"] {background:#352658!important;border-radius:10px;}
-[data-testid="stSidebarNav"] a:hover {background:#2B2345!important;border-radius:10px;}
-p,li,label,[data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"],[data-testid="stMetricLabel"] {color:#E9E3F5;}
-[data-testid="stCaptionContainer"],small {color:#C0B7D4!important;}
-.project-card {padding:1.25rem 1.3rem;border-radius:16px;background:#1B1731;border:1px solid #403654;box-shadow:0 8px 24px #07061244;min-height:170px;margin-bottom:.5rem;}
-.project-card h3 {margin:.65rem 0 .5rem;font-size:1.2rem;color:#F4F1FF!important;}
-.project-card p {margin:.25rem 0;color:#CFC6E1;}
+.block-container h1 {color:#312064!important;font-weight:800;letter-spacing:-.035em;}
+.block-container h2,.block-container h3 {color:#403073!important;letter-spacing:-.02em;}
+[data-testid="stSidebar"] {background:linear-gradient(180deg,#39207B 0%,#263B92 100%)!important;border-right:1px solid #5142A6;}
+[data-testid="stSidebar"] * {color:#FFFFFF!important;}
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {color:#E7E3FF!important;}
+[data-testid="stSidebarNav"] a[aria-current="page"] {background:#6551B6!important;border-radius:10px;}
+[data-testid="stSidebarNav"] a:hover {background:#5948A4!important;border-radius:10px;}
+p,li,label,[data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"],[data-testid="stMetricLabel"] {color:#312650;}
+[data-testid="stCaptionContainer"],small {color:#615779!important;}
+.project-card {padding:1.25rem 1.3rem;border-radius:16px;background:#FFFFFF;border:1px solid #DDD6FE;box-shadow:0 7px 24px #6356A11A;min-height:170px;margin-bottom:.5rem;}
+.project-card h3 {margin:.65rem 0 .5rem;font-size:1.2rem;color:#312064!important;}
+.project-card p {margin:.25rem 0;color:#544B70;}
 .pill {display:inline-block;padding:.28rem .7rem;border-radius:999px;font-size:.8rem;font-weight:700;}
-.green {background:#123F36;color:#A7F3D0;}
-.yellow {background:#4B3514;color:#FDE68A;}
-.red {background:#4A2035;color:#FDA4AF;}
-.subtitle {color:#C0B7D4;margin-top:-.5rem;}
-div[data-testid="stMetric"],div[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stDataFrame"] {background:#1B1731!important;border:1px solid #403654!important;border-radius:14px!important;}
+.green {background:#DCFCE7;color:#166534;}
+.yellow {background:#FEF3C7;color:#92400E;}
+.red {background:#FEE2E2;color:#991B1B;}
+.subtitle {color:#615779;margin-top:-.5rem;}
+div[data-testid="stMetric"],div[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stDataFrame"] {background:#FFFFFF!important;border:1px solid #DDD6FE!important;border-radius:14px!important;}
 div[data-testid="stMetric"] {padding:14px 18px;min-height:100px;}
-[data-testid="stMetricValue"] {color:#F4F1FF!important;}
+[data-testid="stMetricValue"] {color:#312064!important;}
 [data-testid="stMetricDelta"] {font-weight:650;}
-div[data-testid="stButton"] button,div[data-testid="stFormSubmitButton"] button {border-radius:11px!important;font-weight:700!important;min-height:42px;background:#302648!important;color:#F4F1FF!important;border:1px solid #6C5B8E!important;}
-div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(110deg,#6041C8,#4338CA)!important;color:#FFFFFF!important;border:1px solid #8B76EA!important;}
-div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] button:hover {background:#473569!important;border-color:#A78BFA!important;color:#FFFFFF!important;}
-div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover {background:#6D4DD7!important;}
-[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] {background:#402136!important;border:1px solid #BE607E!important;color:#FFE3EC!important;}
-[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#633048!important;color:#FFFFFF!important;}
-[data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"],[data-baseweb="popover"],[data-baseweb="menu"],[data-baseweb="calendar"] {background:#211B36!important;color:#F4F1FF!important;border-color:#57496D!important;}
-input,textarea {color:#F4F1FF!important;caret-color:#C4B5FD!important;}
-input::placeholder,textarea::placeholder {color:#AFA5C5!important;}
+div[data-testid="stButton"] button,div[data-testid="stFormSubmitButton"] button {border-radius:11px!important;font-weight:700!important;min-height:42px;background:#EDE9FE!important;color:#4C1D95!important;border:1px solid #C4B5FD!important;}
+div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(110deg,#7C3AED,#2563EB)!important;color:#FFFFFF!important;border:1px solid #6049DB!important;}
+div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] button:hover {background:#DDD6FE!important;border-color:#7C3AED!important;color:#3B167F!important;}
+div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover {background:linear-gradient(110deg,#6D28D9,#1D4ED8)!important;color:#FFFFFF!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] {background:#FCE7F3!important;border:1px solid #F9A8D4!important;color:#9D174D!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#FBCFE8!important;color:#831843!important;}
+[data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"] {background:#FFFFFF!important;color:#312650!important;border-color:#BEB3DD!important;}
+input,textarea {color:#312650!important;caret-color:#7C3AED!important;}
+input::placeholder,textarea::placeholder {color:#756B8E!important;}
 [data-testid="stAlert"] {border-radius:12px;}
-[data-testid="stTabs"] [data-baseweb="tab"] {color:#D8CFF0!important;}
-[data-testid="stTabs"] [aria-selected="true"] {color:#C4B5FD!important;border-bottom-color:#A78BFA!important;}
-a {color:#BDA7FF!important;}
-*:focus-visible {outline:3px solid #A78BFA!important;outline-offset:3px;}
+[data-testid="stTabs"] [data-baseweb="tab"] {color:#55437D!important;}
+[data-testid="stTabs"] [aria-selected="true"] {color:#6D28D9!important;border-bottom-color:#7C3AED!important;}
+a {color:#5B21B6!important;}
+[data-testid="stSidebar"] a {color:#FFFFFF!important;}
+*:focus-visible {outline:3px solid #2563EB!important;outline-offset:3px;}
 @media(max-width:700px){.block-container{padding:1rem .8rem 2rem;}.project-card{min-height:auto;padding:1rem;}.block-container h1{font-size:1.8rem;}div[data-testid="stMetric"]{min-height:85px;padding:10px;}}
 </style>
 """, unsafe_allow_html=True)
@@ -1292,7 +1294,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-midnight-20261023-01")
+    st.caption("Versão: purple-tech-20261023-02")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
