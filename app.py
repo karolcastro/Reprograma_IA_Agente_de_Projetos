@@ -244,43 +244,65 @@ def pagina_atas_ia():
         st.info("Nenhuma ata identificada para este projeto.")
         return
     consolidado = consolidar_atas(atas)
-    st.subheader("O que mudou desde a reunião anterior?")
+    st.subheader("Evolução entre as últimas reuniões")
+    st.caption("Acompanhe o caminho do projeto em três etapas, da reunião anterior à mais recente.")
     comparacao = comparar_reunioes(atas)
     if not comparacao["comparavel"]:
-        st.info("É necessário ter pelo menos duas atas para comparar reuniões.")
+        st.info("Com duas ou mais atas, o fluxo de evolução aparecerá aqui.")
     else:
-        st.caption("Comparação entre " + comparacao["reuniao_anterior"] +
-                   " e " + comparacao["reuniao_recente"] +
-                   ". Informações extraídas literalmente das atas.")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Novas decisões registradas**")
-            if comparacao["novas_decisoes"]:
-                for trecho in comparacao["novas_decisoes"]:
-                    st.write("• " + trecho)
-            else:
-                st.caption("Nenhuma nova decisão identificada pelas regras.")
-            st.markdown("**Atualizações da última reunião**")
-            if comparacao["atualizacoes"]:
-                for trecho in comparacao["atualizacoes"]:
-                    st.write("• " + trecho)
-            else:
-                st.caption("Nenhuma atualização explícita.")
-        with col2:
-            st.markdown("**Pendências mencionadas na última reunião**")
-            if comparacao["pendencias"]:
-                for trecho in comparacao["pendencias"]:
-                    st.write("• " + trecho)
-            else:
-                st.caption("Nenhuma pendência explícita.")
-            st.markdown("**Riscos mencionados na última reunião**")
-            if comparacao["riscos"]:
-                for trecho in comparacao["riscos"]:
-                    st.write("• " + trecho)
-            else:
-                st.caption("Nenhum risco explícito.")
-        st.caption("A ausência de uma pendência na ata recente não significa conclusão. "
-                   "A análise ainda não é feita por um modelo de IA.")
+        anterior = consolidado["atas"][-2]
+        recente = consolidado["atas"][-1]
+        registros_anteriores = extrair_trechos(anterior["texto"])
+        col_inicio, col_seta1, col_mudanca, col_seta2, col_agora = st.columns(
+            [4, 0.5, 4, 0.5, 4], vertical_alignment="center"
+        )
+        with col_inicio:
+            st.markdown("#### 📅 Antes")
+            st.caption("Reunião de " + comparacao["reuniao_anterior"])
+            qtd_pend = len(registros_anteriores["Pendências"])
+            qtd_risco = len(registros_anteriores["Riscos e gargalos"])
+            st.markdown(f"**{qtd_pend}** registro(s) de pendência")
+            st.markdown(f"**{qtd_risco}** registro(s) de risco")
+            st.caption("Ponto de partida da comparação")
+        with col_seta1:
+            st.markdown("### →")
+        with col_mudanca:
+            st.markdown("#### 🔄 Mudanças")
+            st.caption("Registros da reunião de " + comparacao["reuniao_recente"])
+            st.markdown("🔵 **" + str(len(comparacao["novas_decisoes"])) +
+                        "** decisão(ões) diferente(s)")
+            st.markdown("🟢 **" + str(len(comparacao["atualizacoes"])) +
+                        "** atualização(ões)")
+            st.caption("Os números contam registros, não tarefas concluídas.")
+        with col_seta2:
+            st.markdown("### →")
+        with col_agora:
+            st.markdown("#### 📍 Agora")
+            st.caption("Última reunião: " + comparacao["reuniao_recente"])
+            st.markdown("🟡 **" + str(len(comparacao["pendencias"])) +
+                        "** registro(s) de pendência")
+            st.markdown("🔴 **" + str(len(comparacao["riscos"])) +
+                        "** registro(s) de risco")
+            st.caption("Situação mencionada na ata mais recente")
+        st.caption("**Legenda:** 🔵 decisão diferente da reunião anterior · "
+                   "🟢 atualização registrada · 🟡 pendência mencionada · "
+                   "🔴 risco ou gargalo mencionado")
+        st.markdown("**O que aconteceu nessa passagem?**")
+        destaques = [
+            ("🔵 Decisões", comparacao["novas_decisoes"]),
+            ("🟢 Atualizações", comparacao["atualizacoes"]),
+            ("🟡 Pendências", comparacao["pendencias"]),
+            ("🔴 Riscos", comparacao["riscos"]),
+        ]
+        for rotulo, trechos in destaques:
+            if trechos:
+                with st.expander(rotulo + " · " + str(len(trechos)) + " registro(s)"):
+                    for trecho in trechos:
+                        st.write("• " + trecho)
+                    st.caption("Fonte: " + recente["arquivo"])
+        st.info("Este fluxo resume o que foi registrado nas atas. "
+                "Não confirma automaticamente a resolução de riscos ou pendências, "
+                "nem mede o percentual de execução do projeto.")
     st.subheader("Evolução histórica das reuniões")
     st.caption("Linha do tempo dos registros das atas. Os pontos não representam percentual de execução.")
     eventos = []
