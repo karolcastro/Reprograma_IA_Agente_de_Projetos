@@ -19,6 +19,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Check syntax
-        run: python -m compileall -q app.py farol.py tests
+        run: python -m compileall -q app.py farol.py atas_github.py tests
       - name: Run tests
         run: python -m pytest -q
