@@ -43,11 +43,10 @@ div[data-testid="stButton"] button,div[data-testid="stFormSubmitButton"] button 
 div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(110deg,#7C3AED,#2563EB)!important;color:#FFFFFF!important;border:1px solid #6049DB!important;}
 div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] button:hover {background:#DDD6FE!important;border-color:#7C3AED!important;color:#3B167F!important;}
 div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover {background:linear-gradient(110deg,#6D28D9,#1D4ED8)!important;color:#FFFFFF!important;}
-[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] {background:#9D174D!important;border:1px solid #BE185D!important;color:#FFFFFF!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] {background:#4F46A5!important;border:1px solid #A5B4FC!important;color:#FFFFFF!important;}
 [data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"] * {color:#FFFFFF!important;opacity:1!important;}
-[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#831843!important;color:#FFFFFF!important;}
+[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#3730A3!important;border-color:#C4B5FD!important;color:#FFFFFF!important;}
 [data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover * {color:#FFFFFF!important;}
-[data-testid="stSidebar"] [data-testid="stButton"] button[kind="secondary"]:hover {background:#FBCFE8!important;color:#831843!important;}
 [data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"] {background:#FFFFFF!important;color:#312650!important;border-color:#BEB3DD!important;}
 input,textarea {color:#312650!important;caret-color:#7C3AED!important;}
 input::placeholder,textarea::placeholder {color:#756B8E!important;}
@@ -1297,7 +1296,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-03")
+    st.caption("Versão: purple-tech-20261023-04")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
