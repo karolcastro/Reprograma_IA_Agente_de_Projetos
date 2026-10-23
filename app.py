@@ -649,6 +649,8 @@ with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
+    st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
+    st.caption("Versão: admin-20261023-02")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
