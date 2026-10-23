@@ -28,6 +28,26 @@ st.markdown("""
 .yellow {background:#fff3d6; color:#956300;}
 .red {background:#ffe6e6; color:#a92c36;}
 .subtitle {color: #64748b; margin-top: -.5rem;}
+
+/* UX: hierarquia visual, foco acessível, leitura e adaptação mobile. */
+html {scroll-behavior:smooth;}
+.block-container h1 {letter-spacing:-.035em; font-weight:800; color:#14243d;}
+.block-container h2,.block-container h3 {letter-spacing:-.02em; color:#213450;}
+div[data-testid="stMetric"] {background:#f8fafc;border:1px solid #e5ebf3;
+  border-radius:14px;padding:14px 18px;min-height:100px;}
+div[data-testid="stMetricLabel"] {font-weight:600;}
+div[data-testid="stExpander"] {border:1px solid #e5ebf3;border-radius:12px;}
+div[data-testid="stButton"] button {border-radius:10px;font-weight:650;min-height:40px;}
+div[data-testid="stButton"] button:focus-visible,
+a:focus-visible {outline:3px solid #2563eb;outline-offset:3px;}
+div[data-testid="stAlert"] {border-radius:12px;}
+@media(max-width:700px) {
+  .block-container {padding:1rem .8rem 2rem;}
+  .project-card {min-height:auto;padding:1rem;}
+  .block-container h1 {font-size:1.8rem;}
+  div[data-testid="stMetric"] {min-height:85px;padding:10px;}
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -240,6 +260,9 @@ def pagina_atas_ia():
         return
     atas = resultado.get("atas", [])
     st.metric("Atas encontradas", len(atas))
+    st.caption("💡 **Como ler esta página:** primeiro veja o comparativo ANTES × AGORA, "
+               "depois explore o gráfico de evolução e, se precisar, consulte as atas completas.")
+
     if not atas:
         st.info("Nenhuma ata identificada para este projeto.")
         return
