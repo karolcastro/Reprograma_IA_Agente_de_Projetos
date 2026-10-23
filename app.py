@@ -120,6 +120,59 @@ def pagina_dashboard():
     k3.metric("Em atenção", sum(p["farol"] == "amarelo" for p in projetos))
     k4.metric("Atrasados", sum(p["farol"] == "vermelho" for p in projetos))
 
+    st.subheader("Resumo para tomada de decisão")
+    st.caption("Três perguntas para entender o portfólio rapidamente. "
+               "Indicadores calculados com os dados atuais dos projetos.")
+    atrasados = [p for p in projetos if p["farol"] == "vermelho"]
+    atencao = [p for p in projetos if p["farol"] == "amarelo"]
+    em_dia = [p for p in projetos if p["farol"] == "verde"]
+    criticos = sorted(atrasados + atencao, key=lambda p: (p["farol"] != "vermelho", p["prazo"]))
+    proxima_entrega = min(projetos, key=lambda p: p["prazo"]) if projetos else None
+    cor_fundo = "#fff0f0" if atrasados else ("#fff7e5" if atencao else "#eaf8f0")
+    situacao_resumo = (
+        f"{len(atrasados)} projeto(s) atrasado(s)" if atrasados
+        else f"{len(atencao)} projeto(s) em atenção" if atencao
+        else "Todos os projetos em dia"
+    )
+    col_estado, col_alerta, col_acao = st.columns(3, gap="medium")
+    with col_estado:
+        st.markdown("#### 📍 Onde estamos?")
+        st.markdown(
+            '<div style="background:' + cor_fundo +
+            ';border-radius:12px;padding:16px;min-height:115px;">' +
+            '<strong>' + html.escape(situacao_resumo) + '</strong><br>' +
+            '<span style="color:#475569">' + str(len(em_dia)) +
+            ' em dia de ' + str(total) + ' projeto(s)</span></div>',
+            unsafe_allow_html=True,
+        )
+    with col_alerta:
+        st.markdown("#### ⚠️ O que exige atenção?")
+        if criticos:
+            for p in criticos[:3]:
+                st.markdown("🔴 " if p["farol"] == "vermelho" else "🟡 ", unsafe_allow_html=False)
+                st.write(p["nome"] + " · entrega " + formatar_data(p["prazo"]))
+            if len(criticos) > 3:
+                st.caption("E mais " + str(len(criticos) - 3) + " projeto(s) no portfólio.")
+        else:
+            st.success("Nenhum projeto em alerta pelo indicador atual.")
+    with col_acao:
+        st.markdown("#### 🎯 Qual o próximo passo?")
+        if criticos:
+            prioridade = criticos[0]
+            st.write("**Revisar o projeto prioritário:** " + prioridade["nome"])
+            st.caption("Prioridade sugerida pelo farol e prazo. Confirme com o responsável.")
+            if st.button("Abrir projeto prioritário →", key="prioridade_executiva",
+                         use_container_width=True):
+                st.session_state["projeto_id"] = prioridade["id"]
+                st.switch_page(pagina_detalhe)
+        elif proxima_entrega:
+            st.write("**Acompanhar a próxima entrega:** " + proxima_entrega["nome"])
+            st.caption("Prazo: " + formatar_data(proxima_entrega["prazo"]))
+        else:
+            st.info("Cadastre projetos para receber orientações.")
+    st.caption("**Legenda:** 🟢 Em dia · 🟡 Atenção · 🔴 Atrasado. "
+               "A recomendação é baseada em regras, não em análise por IA.")
+
     st.subheader("Projetos")
     filtrados = [p for p in projetos if filtro == "Todos" or ROTULOS[p["farol"]] == filtro]
     if not filtrados:
