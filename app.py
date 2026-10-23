@@ -681,8 +681,10 @@ def pagina_gerenciar_portfolio():
             prazo_novo = st.date_input("Data de entrega", value=date.today())
             status_novo = st.selectbox("Situação inicial", ["em_andamento", "pausado"])
             confirma_novo = st.checkbox("Confirmo a criação do projeto")
-            salvar_novo = st.form_submit_button("Criar projeto", type="primary", disabled=not confirma_novo)
-        if salvar_novo:
+            salvar_novo = st.form_submit_button("Criar projeto", type="primary")
+        if salvar_novo and not confirma_novo:
+            st.warning("Marque a confirmação antes de salvar.")
+        if salvar_novo and confirma_novo:
             if not nome_novo.strip() or not responsavel_novo.strip() or prazo_novo < inicio_novo:
                 st.error("Informe nome, responsável e prazo válido.")
             else:
@@ -705,9 +707,10 @@ def pagina_gerenciar_portfolio():
                 responsavel_pnovo = st.text_input("Responsável pela pendência")
                 prazo_pnovo = st.date_input("Prazo previsto", value=date.today())
                 confirma_pnovo = st.checkbox("Confirmo a criação da pendência")
-                salvar_pnovo = st.form_submit_button("Criar pendência", type="primary",
-                                                    disabled=not confirma_pnovo)
-            if salvar_pnovo:
+                salvar_pnovo = st.form_submit_button("Criar pendência", type="primary")
+            if salvar_pnovo and not confirma_pnovo:
+            st.warning("Marque a confirmação antes de salvar.")
+        if salvar_pnovo and confirma_pnovo:
                 if not descricao_nova.strip():
                     st.error("Informe a descrição.")
                 else:
@@ -734,8 +737,10 @@ def pagina_gerenciar_portfolio():
             status = st.selectbox("Situação", opcoes_status,
                 index=opcoes_status.index(escolhido["status"]))
             confirmar = st.checkbox("Confirmo a atualização deste projeto")
-            salvar = st.form_submit_button("Salvar projeto", type="primary", disabled=not confirmar)
-        if salvar:
+            salvar = st.form_submit_button("Salvar projeto", type="primary")
+        if salvar and not confirmar:
+            st.warning("Marque a confirmação antes de salvar.")
+        if salvar and confirmar:
             if not nome.strip() or not responsavel.strip() or prazo < inicio:
                 st.error("Informe nome e responsável; o prazo não pode ser anterior ao início.")
             else:
@@ -771,9 +776,10 @@ def pagina_gerenciar_portfolio():
                 status_p = st.selectbox("Situação da pendência", opcoes,
                     index=opcoes.index(pendencia["status"]))
                 confirmar_p = st.checkbox("Confirmo a atualização desta pendência")
-                salvar_p = st.form_submit_button("Salvar pendência", type="primary",
-                                                 disabled=not confirmar_p)
-            if salvar_p:
+                salvar_p = st.form_submit_button("Salvar pendência", type="primary")
+            if salvar_p and not confirmar_p:
+            st.warning("Marque a confirmação antes de salvar.")
+        if salvar_p and confirmar_p:
                 if not descricao.strip():
                     st.error("A descrição é obrigatória.")
                 else:
@@ -884,7 +890,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: portfolio-20261023-02")
+    st.caption("Versão: portfolio-20261023-03")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
