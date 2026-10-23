@@ -783,7 +783,7 @@ def pagina_administracao():
         return
     try:
         usuarios = consultar("perfis_usuarios", "id,nome,perfil_global,ativo")
-        acessos = consultar("projeto_acessos", "usuario_id,projeto_id,papel")
+        acessos = consultar("projeto_acessos", "usuario_id,projeto_id,papel,dedicacao_percentual")
         equipes = consultar("squads", "id,nome")
         membros = consultar("squad_membros", "usuario_id,squad_id,papel")
     except (requests.RequestException, PermissionError):
@@ -804,11 +804,16 @@ def pagina_administracao():
     ids_validos = set(mapa_projetos)
     vinculos_validos = {(a["usuario_id"], a["projeto_id"]): a["papel"] for a in acessos
                        if a["usuario_id"] in usuarios_ativos and a["projeto_id"] in ids_validos}
+    dedicacao = {(a["usuario_id"], a["projeto_id"]): a.get("dedicacao_percentual") for a in acessos}
     por_projeto = {pid: [] for pid in ids_validos}
     por_usuario = {uid: [] for uid in usuarios_ativos}
     for (uid, pid), papel_vinculo in vinculos_validos.items():
         por_projeto[pid].append((uid, papel_vinculo))
         por_usuario[uid].append((pid, papel_vinculo))
+    totais_dedicacao = {uid: sum(int(dedicacao.get((uid, pid)) or 0) for pid, _ in atrib)
+                        for uid, atrib in por_usuario.items()}
+    sem_definicao = {uid: sum(dedicacao.get((uid, pid)) is None for pid, _ in atrib)
+                    for uid, atrib in por_usuario.items()}
     met1, met2, met3 = st.columns(3)
     met1.metric("Pessoas ativas com projetos", sum(bool(v) for v in por_usuario.values()))
     met2.metric("Participações em projetos", len(vinculos_validos))
@@ -822,6 +827,8 @@ def pagina_administracao():
             linhas_projetos.append({
                 "Projeto": f"{icone} {nome_projeto}",
                 "Pessoas": len(participantes),
+                "Dedicação planejada somada (%)": sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes),
+                "Sem dedicação informada": sum(dedicacao.get((uid,pid)) is None for uid, _ in participantes),
                 "Participantes e papéis": ", ".join(f'{usuarios_ativos[uid]["nome"]} ({papel})'
                                                     for uid, papel in participantes) or "Nenhum vínculo",
             })
@@ -834,11 +841,54 @@ def pagina_administracao():
                 "Pessoa": pessoa["nome"],
                 "Perfil": pessoa["perfil_global"],
                 "Projetos": len(atribuicoes),
+                "Dedicação total (%)": totais_dedicacao[uid],
+                "Alocações sem percentual": sem_definicao[uid],
+                "Capacidade": ("Não definida" if sem_definicao[uid] else
+                              "Acima de 100%" if totais_dedicacao[uid] > 100 else
+                              "100% alocado" if totais_dedicacao[uid] == 100 else "Disponibilidade parcial"),
                 "Projetos e papéis": ", ".join(f'{mapa_projetos[pid]} ({papel})'
                                                 for pid, papel in atribuicoes) or "Nenhum vínculo",
             })
         st.dataframe(linhas_pessoas, hide_index=True, use_container_width=True)
-    st.caption("Contagens de alocação, não de capacidade: uma participação não representa dedicação integral. Apenas usuários ativos são contados.")
+    st.caption("Dedicação é uma estimativa de planejamento. Valores não informados não são tratados como 0% de disponibilidade; acima de 100% indica possível sobrecarga, não comprovação de horas trabalhadas.")
+    st.subheader("⚖️ Planejar dedicação por projeto")
+    pessoa_carga = st.selectbox("Profissional", sorted(usuarios_ativos.values(), key=lambda u:u["nome"].casefold()),
+                                format_func=lambda u:u["nome"], key="pessoa_dedicacao")
+    alocacoes_pessoa = [(pid,papel) for pid,papel in por_usuario.get(pessoa_carga["id"],[])]
+    if not alocacoes_pessoa:
+        st.info("Vincule este profissional a um projeto antes de definir sua dedicação.")
+    else:
+        pid_carga = st.selectbox("Projeto para ajustar a dedicação", [pid for pid,_ in alocacoes_pessoa],
+                                format_func=lambda pid:mapa_projetos[pid], key="projeto_dedicacao")
+        atual = dedicacao.get((pessoa_carga["id"],pid_carga))
+        st.caption("Dedicação atual: " + (str(atual)+"%" if atual is not None else "não informada"))
+        with st.form("form_dedicacao"):
+            percentual = st.slider("Dedicação planejada (%)", min_value=0, max_value=100,
+                                   value=int(atual) if atual is not None else 0, step=5)
+            limpar = st.checkbox("Remover estimativa (deixar não informada)")
+            salvar = st.form_submit_button("Salvar dedicação", type="primary")
+        if salvar:
+            valor = None if limpar else percentual
+            total_previsto = sum(int(dedicacao.get((pessoa_carga["id"],pid)) or 0)
+                                 for pid,_ in alocacoes_pessoa if pid != pid_carga) + (valor or 0)
+            try:
+                base = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/projeto_acessos"
+                headers = dict(cabecalhos_usuario())
+                headers["Prefer"] = "return=representation"
+                resposta = requests.patch(base, headers=headers,
+                    params={"usuario_id":"eq."+str(pessoa_carga["id"]),
+                            "projeto_id":"eq."+str(pid_carga),"select":"projeto_id"},
+                    json={"dedicacao_percentual":valor},timeout=15)
+                resposta.raise_for_status()
+                if len(resposta.json()) != 1:
+                    raise PermissionError("Nenhuma alocação atualizada.")
+            except (requests.RequestException, PermissionError, ValueError):
+                st.error("Não foi possível salvar a dedicação. Verifique suas permissões.")
+            else:
+                if total_previsto > 100:
+                    st.warning(f"Atenção: a dedicação planejada soma {total_previsto}% em todos os projetos deste profissional.")
+                st.success("Dedicação atualizada.")
+                st.rerun()
     st.subheader("Cadastro central")
     st.caption("Somente nome, perfil e situação são exibidos. E-mails, senhas e tokens não aparecem neste painel.")
     st.dataframe([{"Nome":u["nome"], "Perfil":u["perfil_global"],
@@ -850,7 +900,7 @@ def pagina_administracao():
                               format_func=lambda u:u["nome"])
     identificador = selecionado["id"]
     linhas = [{"Projeto":mapa_projetos.get(a["projeto_id"],"Projeto indisponível"),
-               "Papel":a["papel"]} for a in acessos if a["usuario_id"]==identificador]
+               "Papel":a["papel"], "Dedicação (%)": a.get("dedicacao_percentual") if a.get("dedicacao_percentual") is not None else "Não informada"} for a in acessos if a["usuario_id"]==identificador]
     st.markdown("**Projetos autorizados**")
     if linhas:
         st.dataframe(linhas,hide_index=True,use_container_width=True)
@@ -1302,7 +1352,7 @@ def pagina_squads():
         equipes = consultar("squads", "id,nome,descricao", {"ativo": "eq.true"})
         membros = consultar("squad_membros", "squad_id,papel")
         vinculos = consultar("projeto_squads", "squad_id,projeto_id")
-        acessos = consultar("projeto_acessos", "projeto_id,papel")
+        acessos = consultar("projeto_acessos", "projeto_id,papel,dedicacao_percentual")
     except (requests.RequestException, PermissionError):
         st.error("Não foi possível consultar as squads e permissões.")
         return
@@ -1322,6 +1372,7 @@ def pagina_squads():
             "Projeto": f'{icone} {p["nome"]}',
             "Tipo": categoria,
             "Meu papel": acesso_por_projeto.get(p["id"], "Não informado"),
+            "Minha dedicação (%)": next((a.get("dedicacao_percentual") for a in acessos if a["projeto_id"] == p["id"]), None),
         })
     if linhas_meus_projetos:
         st.dataframe(linhas_meus_projetos, hide_index=True, use_container_width=True)
@@ -1428,7 +1479,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-09")
+    st.caption("Versão: purple-tech-20261023-10")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
