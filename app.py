@@ -633,6 +633,101 @@ def pagina_administracao():
                     st.rerun()
 
 
+def atualizar_registro(tabela, registro_id, dados):
+    """PATCH restrito a campos permitidos; Supabase aplica RLS e auditoria."""
+    campos_permitidos = {
+        "projetos": {"nome", "responsavel", "inicio", "prazo", "status"},
+        "pendencias": {"descricao", "responsavel", "prazo", "status"},
+    }
+    if tabela not in campos_permitidos or not dados or not set(dados).issubset(campos_permitidos[tabela]):
+        raise ValueError("Campos não permitidos.")
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
+    cabecalhos = dict(cabecalhos_usuario())
+    cabecalhos["Prefer"] = "return=representation"
+    resposta = requests.patch(url, headers=cabecalhos,
+        params={"id":"eq." + str(registro_id), "select":"id"}, json=dados, timeout=15)
+    resposta.raise_for_status()
+    if len(resposta.json()) != 1:
+        raise PermissionError("Registro não atualizado ou acesso não autorizado.")
+
+
+def pagina_gerenciar_portfolio():
+    st.title("📝 Gestão de projetos e pendências")
+    st.caption("Edição administrativa · Dados protegidos por RLS e alterações auditadas")
+    if perfil[0].get("perfil_global") != "admin":
+        st.error("Acesso restrito.")
+        return
+    if not projetos:
+        st.info("Nenhum projeto disponível.")
+        return
+    aba_projeto, aba_pendencias = st.tabs(["Editar projeto", "Editar pendências"])
+    with aba_projeto:
+        escolhido = st.selectbox("Projeto", projetos, format_func=lambda p:p["nome"], key="editar_projeto")
+        with st.form("form_edicao_projeto"):
+            nome = st.text_input("Nome", value=escolhido["nome"])
+            responsavel = st.text_input("Responsável", value=escolhido["responsavel"])
+            inicio = st.date_input("Início", value=date.fromisoformat(str(escolhido["inicio"])))
+            prazo = st.date_input("Prazo", value=date.fromisoformat(str(escolhido["prazo"])))
+            opcoes_status = ["em_andamento", "pausado", "concluido"]
+            status = st.selectbox("Situação", opcoes_status,
+                index=opcoes_status.index(escolhido["status"]))
+            confirmar = st.checkbox("Confirmo a atualização deste projeto")
+            salvar = st.form_submit_button("Salvar projeto", type="primary", disabled=not confirmar)
+        if salvar:
+            if not nome.strip() or not responsavel.strip() or prazo < inicio:
+                st.error("Informe nome e responsável; o prazo não pode ser anterior ao início.")
+            else:
+                try:
+                    atualizar_registro("projetos", escolhido["id"], {
+                        "nome":nome.strip(), "responsavel":responsavel.strip(),
+                        "inicio":inicio.isoformat(), "prazo":prazo.isoformat(), "status":status})
+                except (requests.RequestException, PermissionError, ValueError):
+                    st.error("Não foi possível salvar. Verifique os dados e suas permissões.")
+                else:
+                    st.success("Projeto atualizado e alteração auditada.")
+                    st.rerun()
+    with aba_pendencias:
+        escolhido_p = st.selectbox("Projeto das pendências", projetos,
+                                  format_func=lambda p:p["nome"], key="projeto_pendencias")
+        try:
+            pendencias = consultar("pendencias", "id,descricao,responsavel,prazo,status",
+                                  {"projeto_id":"eq." + str(escolhido_p["id"])})
+        except (requests.RequestException, PermissionError):
+            st.error("Não foi possível carregar as pendências.")
+            return
+        if not pendencias:
+            st.info("Nenhuma pendência cadastrada para este projeto.")
+        else:
+            pendencia = st.selectbox("Pendência", pendencias,
+                format_func=lambda p:p["descricao"][:90])
+            with st.form("form_edicao_pendencia"):
+                descricao = st.text_area("Descrição", value=pendencia["descricao"])
+                responsavel_p = st.text_input("Responsável", value=pendencia.get("responsavel") or "")
+                prazo_p = st.date_input("Prazo da pendência",
+                    value=date.fromisoformat(str(pendencia["prazo"])) if pendencia.get("prazo") else None)
+                opcoes = ["aberta", "concluida"]
+                status_p = st.selectbox("Situação da pendência", opcoes,
+                    index=opcoes.index(pendencia["status"]))
+                confirmar_p = st.checkbox("Confirmo a atualização desta pendência")
+                salvar_p = st.form_submit_button("Salvar pendência", type="primary",
+                                                 disabled=not confirmar_p)
+            if salvar_p:
+                if not descricao.strip():
+                    st.error("A descrição é obrigatória.")
+                else:
+                    try:
+                        atualizar_registro("pendencias", pendencia["id"], {
+                            "descricao":descricao.strip(),
+                            "responsavel":responsavel_p.strip() or None,
+                            "prazo":prazo_p.isoformat() if prazo_p else None,
+                            "status":status_p})
+                    except (requests.RequestException, PermissionError, ValueError):
+                        st.error("Não foi possível salvar. Verifique os dados e suas permissões.")
+                    else:
+                        st.success("Pendência atualizada e alteração auditada.")
+                        st.rerun()
+
+
 def pagina_squads():
     st.title("👥 Minhas squads e acessos")
     st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
@@ -721,19 +816,20 @@ pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="�
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
 pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
 pagina_admin = st.Page(pagina_administracao, title="Administração", icon="🛡️")
+pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: admin-20261023-04")
+    st.caption("Versão: portfolio-20261023-01")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
 
 paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes]
 if perfil[0].get("perfil_global") == "admin":
-    paginas.append(pagina_admin)
+    paginas.extend([pagina_gestao, pagina_admin])
 navegacao = st.navigation(paginas)
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
