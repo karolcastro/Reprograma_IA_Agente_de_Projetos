@@ -87,6 +87,7 @@ def salvar_sessao(dados):
     st.session_state["refresh_token"] = dados["refresh_token"]
     st.session_state["token_expira_em"] = time.time() + int(dados.get("expires_in", 3600))
     st.session_state["email_usuario"] = dados.get("user", {}).get("email", "")
+    st.session_state["auth_user_id"] = dados.get("user", {}).get("id")
 
 def entrar(email, senha):
     url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/token"
@@ -623,7 +624,13 @@ if not st.session_state.get("access_token"):
     st.stop()
 
 try:
-    perfil = consultar("perfis_usuarios", "nome,perfil_global", {"ativo": "eq.true"})
+    if not st.session_state.get("auth_user_id"):
+        url_usuario = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/user"
+        resposta_usuario = requests.get(url_usuario, headers=cabecalhos_usuario(), timeout=15)
+        resposta_usuario.raise_for_status()
+        st.session_state["auth_user_id"] = resposta_usuario.json()["id"]
+    perfil = consultar("perfis_usuarios", "nome,perfil_global",
+                      {"ativo": "eq.true", "auth_user_id": "eq." + st.session_state["auth_user_id"]})
     if not perfil:
         st.session_state.clear()
         st.error("Seu usuário não tem um perfil ativo neste aplicativo.")
@@ -650,7 +657,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: admin-20261023-02")
+    st.caption("Versão: admin-20261023-03")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
