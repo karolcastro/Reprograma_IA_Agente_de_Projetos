@@ -1051,9 +1051,35 @@ def pagina_central_atas():
         with st.expander(titulo + " · " + str(item.get("fonte_data") or "")):
             st.caption("Fonte: " + item["fonte_arquivo"])
             st.write("**Trecho original:** " + item["texto_original"])
+            tarefas_do_projeto = []
+            if item["tipo"] in ("pendencia","prazo","atualizacao","decisao"):
+                try:
+                    tarefas_do_projeto = consultar("pendencias",
+                        "id,descricao,responsavel,prazo,prioridade",
+                        {"projeto_id":"eq." + str(item["projeto_id"])})
+                except (requests.RequestException, PermissionError):
+                    st.warning("Não foi possível carregar as tarefas para vinculação.")
+            alvos = {"pendencia":["Criar nova pendência","Atualizar tarefa existente"],
+                     "gargalo":["Criar novo gargalo"],
+                     "prazo":["Alterar prazo do projeto","Atualizar tarefa existente"],
+                     "atualizacao":["Atualizar tarefa existente","Alterar responsável do projeto"],
+                     "decisao":["Atualizar tarefa existente","Alterar responsável do projeto"]}
             with st.form("revisao_" + str(item["id"])):
                 descricao = st.text_area("Texto revisado", value=item["texto_proposto"])
-                responsavel = st.text_input("Responsável", value=item.get("responsavel") or "")
+                alvo_label = st.selectbox("O que esta informação deve atualizar?",
+                    alvos.get(item["tipo"], []))
+                alvo = {"Criar nova pendência":"novo","Criar novo gargalo":"novo",
+                        "Alterar prazo do projeto":"projeto_prazo",
+                        "Alterar responsável do projeto":"projeto_responsavel",
+                        "Atualizar tarefa existente":"tarefa"}[alvo_label]
+                tarefa_escolhida = None
+                if "Atualizar tarefa existente" in alvos.get(item["tipo"], []):
+                    tarefa_escolhida = st.selectbox("Tarefa existente (para atualização)",
+                        [None] + tarefas_do_projeto,
+                        format_func=lambda t: t["descricao"][:100] if t else "Selecione a tarefa",
+                        key="tarefa_ata_" + str(item["id"]))
+                responsavel = st.text_input("Responsável (preencha ou confirme)",
+                    value=item.get("responsavel") or "")
                 prazo = st.date_input("Prazo (se aplicável)",
                     value=date.fromisoformat(item["prazo"]) if item.get("prazo") else None)
                 prioridade = st.selectbox("Prioridade", ["media","alta","critica","baixa"],
@@ -1061,49 +1087,42 @@ def pagina_central_atas():
                 impacto = st.selectbox("Impacto", ["medio","alto","baixo"],
                     index=["medio","alto","baixo"].index(item.get("impacto") or "medio"))
                 acao = st.radio("Decisão", ["Aprovar", "Rejeitar"], horizontal=True)
-                confirma = st.checkbox("Confirmo minha decisão sobre esta sugestão")
+                confirma = st.checkbox("Conferi a ata, os campos e o destino da alteração")
                 enviar = st.form_submit_button("Registrar decisão", type="primary")
             if enviar:
                 if not confirma or not descricao.strip():
                     st.warning("Confirme a decisão e preencha o texto revisado.")
                     continue
-                if acao == "Aprovar" and item["tipo"] in ("prazo","atualizacao","decisao"):
-                    st.info("Essa categoria requer interpretação contextual. "
-                            "Use Gerenciar projetos para aplicar alterações em datas, "
-                            "responsáveis ou entregas. A sugestão permanece pendente.")
+                if acao == "Aprovar" and alvo == "tarefa" and not tarefa_escolhida:
+                    st.warning("Selecione uma tarefa existente para atualizar.")
                     continue
+                if acao == "Aprovar" and alvo == "projeto_prazo" and not prazo:
+                    st.warning("Informe a nova data do projeto.")
+                    continue
+                if acao == "Aprovar" and alvo == "projeto_responsavel" and not responsavel.strip():
+                    st.warning("Informe o novo responsável pelo projeto.")
+                    continue
+                if acao == "Aprovar" and alvo == "tarefa":
+                    st.warning("Atenção: a descrição, o responsável, o prazo e a prioridade "
+                               "serão substituídos pelos valores deste formulário.")
                 try:
-                    if acao == "Aprovar":
-                        if item["tipo"] == "pendencia":
-                            criar_registro("pendencias", {
-                                "projeto_id":item["projeto_id"], "descricao":descricao.strip(),
-                                "responsavel":responsavel.strip() or None,
-                                "prazo":prazo.isoformat() if prazo else None,
-                                "status":"aberta", "origem":"ata",
-                                "prioridade":prioridade, "progresso":0})
-                        elif item["tipo"] == "gargalo":
-                            criar_registro("gargalos", {
-                                "projeto_id":item["projeto_id"], "descricao":descricao.strip(),
-                                "impacto":impacto, "status":"aberto"})
-                    headers = dict(cabecalhos_usuario())
-                    headers["Prefer"] = "return=representation"
-                    resposta = requests.patch(base, headers=headers,
-                        params={"id":"eq." + str(item["id"]), "status":"eq.pendente",
-                                "select":"id"},
-                        json={"status":"aprovada" if acao=="Aprovar" else "rejeitada",
-                              "texto_proposto":descricao.strip(),
-                              "responsavel":responsavel.strip() or None,
-                              "prazo":prazo.isoformat() if prazo else None,
-                              "prioridade":prioridade, "impacto":impacto,
-                              "revisado_por":st.session_state["auth_user_id"],
-                              "revisado_em":date.today().isoformat()}, timeout=15)
+                    url_rpc = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/rpc/aplicar_sugestao_ata"
+                    resposta = requests.post(url_rpc, headers=cabecalhos_usuario(),
+                        json={"p_id":item["id"],
+                              "p_decisao":"aprovada" if acao=="Aprovar" else "rejeitada",
+                              "p_texto":descricao.strip(),
+                              "p_responsavel":responsavel.strip() or None,
+                              "p_prazo":prazo.isoformat() if prazo else None,
+                              "p_prioridade":prioridade,"p_impacto":impacto,
+                              "p_alvo":alvo,
+                              "p_tarefa_id":tarefa_escolhida["id"] if tarefa_escolhida and alvo=="tarefa" else None},
+                        timeout=15)
                     resposta.raise_for_status()
-                    if len(resposta.json()) != 1:
-                        raise PermissionError("A sugestão não foi atualizada.")
                 except (requests.RequestException, PermissionError, ValueError):
-                    st.error("Falha ao registrar a decisão. Verifique a fila antes de tentar novamente.")
+                    st.error("Não foi possível aplicar a decisão. Nenhuma atualização parcial "
+                             "é confirmada pela operação transacional.")
                 else:
-                    st.success("Decisão registrada e auditada.")
+                    st.success("Decisão aplicada com histórico e atualização do projeto.")
                     st.rerun()
     with st.expander("Histórico de decisões"):
         for item in fila:
@@ -1208,7 +1227,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: central-20261023-01")
+    st.caption("Versão: central-20261023-02")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
