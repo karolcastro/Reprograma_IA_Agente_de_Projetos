@@ -514,6 +514,44 @@ def pagina_atas_ia():
     st.warning("A leitura automática não determina sozinha se uma pendência foi concluída. "
                "Mudanças entre atas ainda precisam de revisão humana.")
 
+def pagina_squads():
+    st.title("👥 Minhas squads e acessos")
+    st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
+    try:
+        equipes = consultar("squads", "id,nome,descricao", {"ativo": "eq.true"})
+        membros = consultar("squad_membros", "squad_id,papel")
+        vinculos = consultar("projeto_squads", "squad_id,projeto_id")
+        acessos = consultar("projeto_acessos", "projeto_id,papel")
+    except (requests.RequestException, PermissionError):
+        st.error("Não foi possível consultar as squads e permissões.")
+        return
+    ids_visiveis = {p["id"] for p in projetos}
+    acesso_por_projeto = {a["projeto_id"]: a["papel"] for a in acessos}
+    st.caption("Os números consideram somente os registros que você tem permissão para consultar.")
+    a, b, c = st.columns(3)
+    a.metric("Minhas squads", len(equipes))
+    b.metric("Projetos autorizados", len(ids_visiveis))
+    c.metric("Vínculos com squads", len(membros))
+    st.markdown("**Legenda dos papéis:** gerente = gestão do projeto · líder = liderança · membro = participante · leitor = consulta.")
+    if not equipes:
+        st.info("Nenhuma squad vinculada ao seu usuário.")
+        return
+    for equipe in equipes:
+        with st.container(border=True):
+            st.subheader("🧩 " + equipe["nome"])
+            if equipe.get("descricao"):
+                st.caption(equipe["descricao"])
+            papeis = [m["papel"] for m in membros if m["squad_id"] == equipe["id"]]
+            st.write("**Seu papel na squad:** " + (", ".join(papeis) if papeis else "Não informado"))
+            projetos_equipe = [p for p in projetos if p["id"] in ids_visiveis and
+                any(v["squad_id"] == equipe["id"] and v["projeto_id"] == p["id"] for v in vinculos)]
+            if not projetos_equipe:
+                st.caption("Nenhum projeto autorizado vinculado a esta squad.")
+            for p in projetos_equipe:
+                st.write("📁 **" + p["nome"] + "** · Acesso: " +
+                         acesso_por_projeto.get(p["id"], "não informado"))
+    st.info("Esta página é de consulta. A administração de membros e permissões será habilitada somente após configurar o perfil Administradora/PMO.")
+
 if not configurado():
     st.error("Configuração pendente: adicione SUPABASE_PUBLISHABLE_KEY aos Secrets do Streamlit.")
     st.stop()
@@ -528,6 +566,7 @@ if not st.session_state.get("access_token"):
     if enviar:
         try:
             if entrar(email, senha):
+                st.session_state["ir_para_visao_executiva"] = True
                 st.rerun()
             st.error("E-mail ou senha inválidos.")
         except requests.RequestException:
@@ -555,6 +594,7 @@ except Exception as erro:
 pagina_principal = st.Page(pagina_dashboard, title="Visão executiva", icon="📊", default=True)
 pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="📁")
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
+pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
@@ -563,5 +603,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-navegacao = st.navigation([pagina_principal, pagina_detalhe, pagina_atas])
+navegacao = st.navigation([pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes])
+if st.session_state.pop("ir_para_visao_executiva", False):
+    st.switch_page(pagina_principal)
 navegacao.run()
