@@ -245,64 +245,92 @@ def pagina_atas_ia():
         return
     consolidado = consolidar_atas(atas)
     st.subheader("Evolução entre as últimas reuniões")
-    st.caption("Acompanhe o caminho do projeto em três etapas, da reunião anterior à mais recente.")
+    st.caption("Comparativo visual dos registros das duas reuniões mais recentes.")
     comparacao = comparar_reunioes(atas)
     if not comparacao["comparavel"]:
-        st.info("Com duas ou mais atas, o fluxo de evolução aparecerá aqui.")
+        st.info("Com duas ou mais atas, o comparativo visual aparecerá aqui.")
     else:
         anterior = consolidado["atas"][-2]
         recente = consolidado["atas"][-1]
-        registros_anteriores = extrair_trechos(anterior["texto"])
-        col_inicio, col_seta1, col_mudanca, col_seta2, col_agora = st.columns(
-            [4, 0.5, 4, 0.5, 4], vertical_alignment="center"
-        )
-        with col_inicio:
-            st.markdown("#### 📅 Antes")
-            st.caption("Reunião de " + comparacao["reuniao_anterior"])
-            qtd_pend = len(registros_anteriores["Pendências"])
-            qtd_risco = len(registros_anteriores["Riscos e gargalos"])
-            st.markdown(f"**{qtd_pend}** registro(s) de pendência")
-            st.markdown(f"**{qtd_risco}** registro(s) de risco")
-            st.caption("Ponto de partida da comparação")
-        with col_seta1:
-            st.markdown("### →")
-        with col_mudanca:
-            st.markdown("#### 🔄 Mudanças")
-            st.caption("Registros da reunião de " + comparacao["reuniao_recente"])
-            st.markdown("🔵 **" + str(len(comparacao["novas_decisoes"])) +
-                        "** decisão(ões) diferente(s)")
-            st.markdown("🟢 **" + str(len(comparacao["atualizacoes"])) +
-                        "** atualização(ões)")
-            st.caption("Os números contam registros, não tarefas concluídas.")
-        with col_seta2:
-            st.markdown("### →")
-        with col_agora:
-            st.markdown("#### 📍 Agora")
-            st.caption("Última reunião: " + comparacao["reuniao_recente"])
-            st.markdown("🟡 **" + str(len(comparacao["pendencias"])) +
-                        "** registro(s) de pendência")
-            st.markdown("🔴 **" + str(len(comparacao["riscos"])) +
-                        "** registro(s) de risco")
-            st.caption("Situação mencionada na ata mais recente")
-        st.caption("**Legenda:** 🔵 decisão diferente da reunião anterior · "
-                   "🟢 atualização registrada · 🟡 pendência mencionada · "
-                   "🔴 risco ou gargalo mencionado")
-        st.markdown("**O que aconteceu nessa passagem?**")
-        destaques = [
-            ("🔵 Decisões", comparacao["novas_decisoes"]),
-            ("🟢 Atualizações", comparacao["atualizacoes"]),
-            ("🟡 Pendências", comparacao["pendencias"]),
-            ("🔴 Riscos", comparacao["riscos"]),
+        antes = extrair_trechos(anterior["texto"])
+        depois = extrair_trechos(recente["texto"])
+        linhas = [
+            ("Decisões", "Decisões", "#0d9488"),
+            ("Atualizações", "Atualizações", "#84b72a"),
+            ("Pendências", "Pendências", "#e4a11b"),
+            ("Riscos e gargalos", "Riscos e gargalos", "#e2534d"),
+            ("Prazos", "Prazos", "#a63875"),
         ]
-        for rotulo, trechos in destaques:
-            if trechos:
-                with st.expander(rotulo + " · " + str(len(trechos)) + " registro(s)"):
-                    for trecho in trechos:
-                        st.write("• " + trecho)
-                    st.caption("Fonte: " + recente["arquivo"])
-        st.info("Este fluxo resume o que foi registrado nas atas. "
-                "Não confirma automaticamente a resolução de riscos ou pendências, "
-                "nem mede o percentual de execução do projeto.")
+        st.markdown("""
+        <style>
+        .meeting-compare {border:1px solid #e3e8ef;border-radius:18px;padding:20px;
+          background:#fff;box-shadow:0 5px 20px rgba(22,34,55,.05);margin:12px 0 20px;}
+        .mc-head {display:grid;grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);
+          align-items:center;gap:8px;text-align:center;margin-bottom:12px;}
+        .mc-head strong {font-size:1.1rem;color:#0c688a;}
+        .mc-head span {color:#7c899b;font-weight:800;font-size:1.35rem;}
+        .mc-date {color:#64748b;font-size:.82rem;}
+        .mc-row {display:grid;grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);
+          align-items:stretch;gap:8px;margin:12px 0;}
+        .mc-cell {padding:12px 14px;border-top:4px solid var(--row-color);
+          background:#f8fafc;border-radius:8px;min-width:0;}
+        .mc-cell b {display:block;color:#253449;margin-bottom:5px;font-size:.86rem;}
+        .mc-cell p {margin:0;color:#4b5b70;font-size:.88rem;overflow-wrap:anywhere;}
+        .mc-mid {display:flex;align-items:center;justify-content:center;}
+        .mc-mid span {background:var(--row-color);color:white;font-weight:800;
+          border-radius:9px;padding:10px 8px;min-width:38px;text-align:center;}
+        .mc-note {font-size:.8rem;color:#64748b;margin-top:12px;}
+        @media(max-width:700px) {
+          .meeting-compare {padding:10px;}
+          .mc-head,.mc-row {grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:4px;}
+          .mc-cell {padding:8px;}
+          .mc-cell p {font-size:.76rem;}
+          .mc-head strong {font-size:.9rem;}
+          .mc-mid span {min-width:28px;padding:7px 3px;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        def resumo_curto(registros):
+            if not registros:
+                return "Não mencionado nesta ata."
+            trecho = registros[0].split(":", 1)[-1].strip()
+            return html.escape(trecho[:175] + ("…" if len(trecho) > 175 else ""))
+        partes = [
+            '<div class="meeting-compare">',
+            '<div class="mc-head"><div><strong>ANTES</strong><br><span class="mc-date">' +
+            html.escape(anterior["data"]) + '</span></div><span>VS</span>' +
+            '<div><strong>AGORA</strong><br><span class="mc-date">' +
+            html.escape(recente["data"]) + '</span></div></div>',
+        ]
+        for numero, (categoria, rotulo, cor) in enumerate(linhas, 1):
+            partes.append(
+                '<div class="mc-row" style="--row-color:' + cor + ';">' +
+                '<div class="mc-cell"><b>' + rotulo + '</b><p>' +
+                resumo_curto(antes[categoria]) + '</p></div>' +
+                '<div class="mc-mid"><span>' + str(numero).zfill(2) + '</span></div>' +
+                '<div class="mc-cell"><b>' + rotulo + '</b><p>' +
+                resumo_curto(depois[categoria]) + '</p></div></div>'
+            )
+        partes.append('</div>')
+        st.markdown("".join(partes), unsafe_allow_html=True)
+        st.caption("**Legenda:** verde-água = decisões · verde = atualizações · "
+                   "amarelo = pendências · vermelho = riscos · rosa = prazos. "
+                   "Cada linha mostra o primeiro registro daquela categoria em cada ata.")
+        with st.expander("Ver todos os registros usados no comparativo"):
+            col_antes, col_depois = st.columns(2)
+            for coluna, ata, grupos in [(col_antes, anterior, antes),
+                                        (col_depois, recente, depois)]:
+                with coluna:
+                    st.markdown("**Reunião de " + ata["data"] + "**")
+                    st.caption("Fonte: " + ata["arquivo"])
+                    for categoria, _, _ in linhas:
+                        if grupos[categoria]:
+                            st.markdown("**" + categoria + "**")
+                            for trecho in grupos[categoria]:
+                                st.write("• " + trecho)
+        st.info("O comparativo mostra registros presentes em cada ata. "
+                "Ausência de menção não significa conclusão ou resolução. "
+                "A comparação ainda é baseada em regras, não em um modelo de IA.")
     st.subheader("Evolução histórica das reuniões")
     st.caption("Linha do tempo dos registros das atas. Os pontos não representam percentual de execução.")
     eventos = []
