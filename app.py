@@ -1,6 +1,6 @@
 """ProjectFlow AI — painel executivo com navegação entre páginas."""
 from datetime import date
-import hmac
+import time
 import html
 
 import altair as alt
@@ -56,16 +56,53 @@ ROTULOS = {"verde": "Em dia", "amarelo": "Atenção", "vermelho": "Atrasado"}
 CLASSES_FAROL = {"verde": "green", "amarelo": "yellow", "vermelho": "red"}
 
 def configurado():
-    return all(k in st.secrets for k in ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "APP_PASSWORD"))
+    return all(k in st.secrets for k in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"))
+
+def cabecalhos_usuario():
+    token = st.session_state.get("access_token")
+    if not token:
+        raise PermissionError("Faça login para consultar os dados.")
+    if time.time() >= st.session_state.get("token_expira_em", 0) - 60:
+        renovar_sessao()
+        token = st.session_state["access_token"]
+    return {"apikey": str(st.secrets["SUPABASE_PUBLISHABLE_KEY"]),
+            "Authorization": "Bearer " + token}
+
+def renovar_sessao():
+    refresh = st.session_state.get("refresh_token")
+    if not refresh:
+        st.session_state.clear()
+        raise PermissionError("Sessão encerrada. Entre novamente.")
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/token"
+    resposta = requests.post(url, params={"grant_type": "refresh_token"},
+        headers={"apikey": str(st.secrets["SUPABASE_PUBLISHABLE_KEY"])},
+        json={"refresh_token": refresh}, timeout=15)
+    if not resposta.ok:
+        st.session_state.clear()
+        raise PermissionError("Sessão expirada. Entre novamente.")
+    salvar_sessao(resposta.json())
+
+def salvar_sessao(dados):
+    st.session_state["access_token"] = dados["access_token"]
+    st.session_state["refresh_token"] = dados["refresh_token"]
+    st.session_state["token_expira_em"] = time.time() + int(dados.get("expires_in", 3600))
+    st.session_state["email_usuario"] = dados.get("user", {}).get("email", "")
+
+def entrar(email, senha):
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/token"
+    resposta = requests.post(url, params={"grant_type": "password"},
+        headers={"apikey": str(st.secrets["SUPABASE_PUBLISHABLE_KEY"])},
+        json={"email": email, "password": senha}, timeout=15)
+    if not resposta.ok:
+        return False
+    salvar_sessao(resposta.json())
+    return True
 
 def consultar(tabela, campos, filtros=None):
     url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
     params = {"select": campos}
     params.update(filtros or {})
-    resposta = requests.get(
-        url, headers={"apikey": str(st.secrets["SUPABASE_SECRET_KEY"])},
-        params=params, timeout=15,
-    )
+    resposta = requests.get(url, headers=cabecalhos_usuario(), params=params, timeout=15)
     resposta.raise_for_status()
     return resposta.json()
 
@@ -83,7 +120,7 @@ def dados_demo():
 
 def carregar_projetos():
     if not configurado():
-        return dados_demo()
+        raise RuntimeError("Configure a chave publicável do Supabase.")
     projetos = consultar("projetos", "id,nome,responsavel,inicio,prazo,status")
     abertas = consultar("pendencias", "projeto_id", {"status": "eq.aberta"})
     contagem = {}
@@ -110,8 +147,6 @@ def formatar_data(valor):
 def pagina_dashboard():
     st.title("Visão executiva")
     st.markdown('<p class="subtitle">Portfólio de projetos • Indicadores e entregas</p>', unsafe_allow_html=True)
-    if not configurado():
-        st.info("Ambiente de demonstração — dados fictícios.")
     filtro = st.selectbox("Situação", ["Todos", "Em dia", "Atenção", "Atrasado"])
     total = len(projetos)
     k1, k2, k3, k4 = st.columns(4)
@@ -479,16 +514,35 @@ def pagina_atas_ia():
     st.warning("A leitura automática não determina sozinha se uma pendência foi concluída. "
                "Mudanças entre atas ainda precisam de revisão humana.")
 
-if configurado() and not st.session_state.get("autorizado", False):
-    st.title("ProjectFlow AI")
-    with st.form("acesso"):
-        senha = st.text_input("Senha de acesso", type="password")
-        enviar = st.form_submit_button("Entrar")
+if not configurado():
+    st.error("Configuração pendente: adicione SUPABASE_PUBLISHABLE_KEY aos Secrets do Streamlit.")
+    st.stop()
+
+if not st.session_state.get("access_token"):
+    st.title("🔐 ProjectFlow AI")
+    st.caption("Acesso individual · Entre com seu usuário do Supabase")
+    with st.form("acesso_individual"):
+        email = st.text_input("E-mail").strip()
+        senha = st.text_input("Senha", type="password")
+        enviar = st.form_submit_button("Entrar", type="primary")
     if enviar:
-        if hmac.compare_digest(senha, str(st.secrets["APP_PASSWORD"])):
-            st.session_state["autorizado"] = True
-            st.rerun()
-        st.error("Senha incorreta.")
+        try:
+            if entrar(email, senha):
+                st.rerun()
+            st.error("E-mail ou senha inválidos.")
+        except requests.RequestException:
+            st.error("Não foi possível conectar ao serviço de autenticação.")
+    st.stop()
+
+try:
+    perfil = consultar("perfis_usuarios", "nome,perfil_global", {"ativo": "eq.true"})
+    if not perfil:
+        st.session_state.clear()
+        st.error("Seu usuário não tem um perfil ativo neste aplicativo.")
+        st.stop()
+except (requests.RequestException, PermissionError):
+    st.session_state.clear()
+    st.warning("Sessão inválida ou acesso não autorizado. Entre novamente.")
     st.stop()
 
 try:
@@ -504,8 +558,9 @@ pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
-    if configurado() and st.button("Sair"):
-        st.session_state["autorizado"] = False
+    st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
+    if st.button("Sair"):
+        st.session_state.clear()
         st.rerun()
 
 navegacao = st.navigation([pagina_principal, pagina_detalhe, pagina_atas])
