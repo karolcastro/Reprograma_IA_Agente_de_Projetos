@@ -57,6 +57,32 @@ a {color:#5B21B6!important;}
 [data-testid="stSidebar"] a {color:#FFFFFF!important;}
 *:focus-visible {outline:3px solid #2563EB!important;outline-offset:3px;}
 @media(max-width:700px){.block-container{padding:1rem .8rem 2rem;}.project-card{min-height:auto;padding:1rem;}.block-container h1{font-size:1.8rem;}div[data-testid="stMetric"]{min-height:85px;padding:10px;}}
+
+/* Purple Tech — cartões de indicadores com variações cromáticas acessíveis */
+div[data-testid="stMetric"] {position:relative;overflow:hidden;box-shadow:0 7px 22px #5B42AA16!important;border-top:4px solid #7C3AED!important;background:linear-gradient(145deg,#FFFFFF,#F1EDFF)!important;}
+div[data-testid="stMetric"]::before {content:"";position:absolute;right:-25px;top:-34px;width:95px;height:95px;border-radius:50%;background:#C4B5FD30;pointer-events:none;}
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] {font-weight:700!important;color:#463477!important;}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {color:#4C1D95!important;font-weight:800!important;}
+/* Dashboard: primeira linha = projetos / em dia / atenção / atrasados */
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4) [data-testid="stMetric"]) > div:nth-child(1) [data-testid="stMetric"] {background:linear-gradient(145deg,#EDE9FE,#FFFFFF)!important;border-top-color:#7C3AED!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4) [data-testid="stMetric"]) > div:nth-child(2) [data-testid="stMetric"] {background:linear-gradient(145deg,#DBEAFE,#FFFFFF)!important;border-top-color:#2563EB!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4) [data-testid="stMetric"]) > div:nth-child(3) [data-testid="stMetric"] {background:linear-gradient(145deg,#FEF3C7,#FFFFFF)!important;border-top-color:#D97706!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4) [data-testid="stMetric"]) > div:nth-child(4) [data-testid="stMetric"] {background:linear-gradient(145deg,#FCE7F3,#FFFFFF)!important;border-top-color:#BE185D!important;}
+/* Tarefas: alternância azul / violeta / índigo / verde / âmbar */
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(5) [data-testid="stMetric"]) > div:nth-child(5n+1) [data-testid="stMetric"] {background:linear-gradient(145deg,#DBEAFE,#FFFFFF)!important;border-top-color:#2563EB!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(5) [data-testid="stMetric"]) > div:nth-child(5n+2) [data-testid="stMetric"] {background:linear-gradient(145deg,#FCE7F3,#FFFFFF)!important;border-top-color:#BE185D!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(5) [data-testid="stMetric"]) > div:nth-child(5n+3) [data-testid="stMetric"] {background:linear-gradient(145deg,#E0E7FF,#FFFFFF)!important;border-top-color:#4F46E5!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(5) [data-testid="stMetric"]) > div:nth-child(5n+4) [data-testid="stMetric"] {background:linear-gradient(145deg,#D1FAE5,#FFFFFF)!important;border-top-color:#047857!important;}
+div[data-testid="stHorizontalBlock"]:has(> div:nth-child(5) [data-testid="stMetric"]) > div:nth-child(5n+5) [data-testid="stMetric"] {background:linear-gradient(145deg,#FEF3C7,#FFFFFF)!important;border-top-color:#B45309!important;}
+/* Seções e conteúdo em todas as páginas */
+[data-testid="stMain"] h2 {border-left:5px solid #7C3AED;padding-left:12px;margin-top:1.2rem;}
+[data-testid="stMain"] h3 {color:#4F35A1!important;}
+div[data-testid="stExpander"] {background:linear-gradient(145deg,#FFFFFF,#F8F5FF)!important;box-shadow:0 3px 12px #7C3AED0C;}
+[data-testid="stForm"] {background:linear-gradient(145deg,#FFFFFF,#F8F7FF)!important;padding:1rem!important;box-shadow:0 3px 14px #7C3AED0D;}
+[data-testid="stTabs"] [aria-selected="true"] {background:#EDE9FE!important;border-radius:8px 8px 0 0!important;}
+.project-card {background:linear-gradient(145deg,#FFFFFF,#F7F4FF);box-shadow:0 9px 25px #6950B81C;}
+.project-card:hover {box-shadow:0 12px 30px #6950B82B;transform:translateY(-2px);transition:box-shadow .18s,transform .18s;}
+[data-testid="stDataFrame"] {box-shadow:0 5px 18px #6950B812;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1296,7 +1322,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-04")
+    st.caption("Versão: purple-tech-20261023-05")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
