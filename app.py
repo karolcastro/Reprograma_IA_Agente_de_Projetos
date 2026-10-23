@@ -709,8 +709,8 @@ def pagina_gerenciar_portfolio():
                 confirma_pnovo = st.checkbox("Confirmo a criação da pendência")
                 salvar_pnovo = st.form_submit_button("Criar pendência", type="primary")
             if salvar_pnovo and not confirma_pnovo:
-            st.warning("Marque a confirmação antes de salvar.")
-        if salvar_pnovo and confirma_pnovo:
+                st.warning("Marque a confirmação antes de salvar.")
+            if salvar_pnovo and confirma_pnovo:
                 if not descricao_nova.strip():
                     st.error("Informe a descrição.")
                 else:
@@ -778,8 +778,8 @@ def pagina_gerenciar_portfolio():
                 confirmar_p = st.checkbox("Confirmo a atualização desta pendência")
                 salvar_p = st.form_submit_button("Salvar pendência", type="primary")
             if salvar_p and not confirmar_p:
-            st.warning("Marque a confirmação antes de salvar.")
-        if salvar_p and confirmar_p:
+                st.warning("Marque a confirmação antes de salvar.")
+            if salvar_p and confirmar_p:
                 if not descricao.strip():
                     st.error("A descrição é obrigatória.")
                 else:
@@ -890,7 +890,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: portfolio-20261023-03")
+    st.caption("Versão: portfolio-20261023-04")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
