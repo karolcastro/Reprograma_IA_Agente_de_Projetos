@@ -1223,7 +1223,7 @@ if not configurado():
     st.stop()
 
 if not st.session_state.get("access_token"):
-    st.title("🔐 ProjectFlow AI")
+    st.title("🔐 Gerenciamento de Projetos com IA")
     st.caption("Acesso individual · Entre com seu usuário do Supabase")
     with st.form("acesso_individual"):
         email = st.text_input("E-mail").strip()
