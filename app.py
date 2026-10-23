@@ -421,6 +421,92 @@ def pagina_atas_ia():
         st.info("Nenhuma ata identificada para este projeto.")
         return
     consolidado = consolidar_atas(atas)
+    st.subheader("🔄 Sincronizar informações da ata com o projeto")
+    st.caption("Revise os registros encontrados. Nada será gravado sem sua aprovação. "
+               "A extração é baseada em regras, não interpreta automaticamente compromissos ambíguos.")
+    projeto_ata = next((p for p in projetos if p["nome"] == nome), None)
+    if perfil[0].get("perfil_global") != "admin":
+        st.info("Somente administradores podem aprovar alterações nas informações dos projetos.")
+    elif projeto_ata:
+        from atas_github import normalizar
+        ata_selecionada = st.selectbox("Ata para revisão", atas,
+            format_func=lambda a: a["data"] + " · " + a["arquivo"],
+            key="ata_para_sincronizar")
+        categorias_ata = extrair_trechos(ata_selecionada["texto"])
+        st.info("Fonte: " + ata_selecionada["arquivo"] + " · Reunião: " +
+                ata_selecionada["data"] + ". O documento de demonstração está no GitHub público.")
+        try:
+            atuais_pendencias = consultar("pendencias", "descricao", {"projeto_id":"eq." + str(projeto_ata["id"])})
+            atuais_gargalos = consultar("gargalos", "descricao", {"projeto_id":"eq." + str(projeto_ata["id"])})
+        except (requests.RequestException, PermissionError):
+            st.error("Não foi possível verificar registros existentes. Sincronização indisponível.")
+            return
+        ja_pendencias = {normalizar(x["descricao"].strip()) for x in atuais_pendencias}
+        ja_gargalos = {normalizar(x["descricao"].strip()) for x in atuais_gargalos}
+        for tipo, categoria, prefixos, existentes in [
+            ("pendencia", "Pendências", ("pendência:", "pendente:", "ação:"), ja_pendencias),
+            ("gargalo", "Riscos e gargalos", ("gargalo:", "risco:"), ja_gargalos),
+        ]:
+            st.markdown("**" + categoria + " identificados**")
+            encontrados = categorias_ata[categoria]
+            if not encontrados:
+                st.caption("Nenhum registro explícito nesta ata.")
+            for i, trecho in enumerate(encontrados):
+                descricao_original = trecho.split(":", 1)[-1].strip()
+                if not descricao_original:
+                    continue
+                if normalizar(descricao_original) in existentes:
+                    st.caption("Já cadastrado: " + descricao_original)
+                    continue
+                chave = tipo + "_" + str(i) + "_" + str(projeto_ata["id"])
+                with st.expander("Revisar: " + descricao_original[:110]):
+                    with st.form("aprovar_ata_" + chave):
+                        descricao_revista = st.text_area("Descrição", value=descricao_original)
+                        if tipo == "pendencia":
+                            responsavel_ata = st.text_input("Responsável (confirme conforme a ata)")
+                            prazo_ata = st.date_input("Prazo (confirme conforme a ata)", value=None)
+                            prioridade_ata = st.selectbox("Prioridade",
+                                ["media", "alta", "critica", "baixa"],
+                                format_func=lambda x: {"media":"Média", "alta":"Alta",
+                                                       "critica":"Crítica", "baixa":"Baixa"}[x])
+                        else:
+                            impacto_ata = st.selectbox("Impacto", ["medio", "alto", "baixo"],
+                                format_func=lambda x: {"medio":"Médio", "alto":"Alto", "baixo":"Baixo"}[x])
+                        confirmado = st.checkbox("Conferi o trecho na ata e aprovo o cadastro")
+                        aprovar = st.form_submit_button("Aplicar ao projeto", type="primary")
+                    if aprovar:
+                        if not confirmado or not descricao_revista.strip():
+                            st.warning("Confirme a revisão e preencha a descrição.")
+                        elif normalizar(descricao_revista.strip()) in existentes:
+                            st.warning("Este registro já está cadastrado no projeto.")
+                        else:
+                            try:
+                                if tipo == "pendencia":
+                                    criar_registro("pendencias", {
+                                        "projeto_id":projeto_ata["id"],
+                                        "descricao":descricao_revista.strip(),
+                                        "responsavel":responsavel_ata.strip() or None,
+                                        "prazo":prazo_ata.isoformat() if prazo_ata else None,
+                                        "status":"aberta", "origem":"ata",
+                                        "prioridade":prioridade_ata, "progresso":0})
+                                else:
+                                    criar_registro("gargalos", {
+                                        "projeto_id":projeto_ata["id"],
+                                        "descricao":descricao_revista.strip(),
+                                        "impacto":impacto_ata, "status":"aberto"})
+                            except (requests.RequestException, PermissionError, ValueError):
+                                st.error("Não foi possível aplicar a alteração. Verifique as permissões.")
+                            else:
+                                st.success("Informação registrada no projeto e auditada.")
+                                st.rerun()
+        st.markdown("**Prazos, entregáveis e responsáveis mencionados**")
+        st.caption("Esses registros precisam de interpretação contextual. Revise antes de alterar "
+                   "o prazo geral do projeto ou substituir responsáveis.")
+        for categoria in ("Prazos", "Decisões", "Atualizações"):
+            for trecho in categorias_ata[categoria]:
+                st.write("• " + trecho)
+        st.caption("Para editar datas e responsáveis do projeto, use Gerenciar projetos → Editar projeto. "
+                   "Para tarefas existentes, use Editar pendências. Nenhuma data é sobrescrita automaticamente.")
     st.subheader("Evolução entre as últimas reuniões")
     st.caption("Comparativo visual dos registros das duas reuniões mais recentes.")
     comparacao = comparar_reunioes(atas)
@@ -718,7 +804,8 @@ def atualizar_registro(tabela, registro_id, dados):
 
 def criar_registro(tabela, dados):
     permitidos = {"projetos": {"nome", "responsavel", "inicio", "prazo", "status"},
-                  "pendencias": {"projeto_id", "descricao", "responsavel", "prazo", "status", "origem", "prioridade", "progresso"}}
+                  "pendencias": {"projeto_id", "descricao", "responsavel", "prazo", "status", "origem", "prioridade", "progresso"},
+                  "gargalos": {"projeto_id", "descricao", "impacto", "status"}}
     if tabela not in permitidos or not dados or not set(dados).issubset(permitidos[tabela]):
         raise ValueError("Campos não permitidos.")
     url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
@@ -972,7 +1059,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: tarefas-20261023-02")
+    st.caption("Versão: atas-20261023-01")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
