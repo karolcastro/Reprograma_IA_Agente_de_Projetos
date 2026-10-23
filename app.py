@@ -99,6 +99,49 @@ def entrar(email, senha):
     salvar_sessao(resposta.json())
     return True
 
+def validar_nova_senha(senha, confirmacao):
+    if len(senha) < 12:
+        return "Use pelo menos 12 caracteres."
+    if senha != confirmacao:
+        return "As senhas informadas são diferentes."
+    return None
+
+def solicitar_recuperacao(email):
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/recover"
+    headers = {"apikey":str(st.secrets["SUPABASE_PUBLISHABLE_KEY"]),
+               "Content-Type":"application/json"}
+    return requests.post(url, headers=headers,
+        json={"email":email}, timeout=15)
+
+def redefinir_senha(senha):
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/auth/v1/user"
+    return requests.put(url, headers=cabecalhos_usuario(),
+                        json={"password":senha}, timeout=15)
+
+def pagina_conta():
+    st.title("🔒 Minha conta")
+    st.caption("Atualize sua senha de acesso ao ProjectFlow AI.")
+    st.write("**E-mail:** " + st.session_state.get("email_usuario",""))
+    with st.form("alterar_senha"):
+        nova = st.text_input("Nova senha (mínimo 12 caracteres)",type="password")
+        confirmar = st.text_input("Confirme a nova senha",type="password")
+        enviar = st.form_submit_button("Alterar senha",type="primary")
+    if enviar:
+        erro = validar_nova_senha(nova,confirmar)
+        if erro:
+            st.warning(erro)
+        else:
+            try:
+                resposta = redefinir_senha(nova)
+                resposta.raise_for_status()
+            except requests.RequestException:
+                st.error("Não foi possível alterar a senha. Tente novamente ou utilize a recuperação por e-mail.")
+            else:
+                st.success("Senha atualizada. Entre novamente com sua nova senha.")
+                st.session_state.clear()
+                st.stop()
+
+
 def consultar(tabela, campos, filtros=None):
     url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
     params = {"select": campos}
@@ -1189,6 +1232,22 @@ if not st.session_state.get("access_token"):
             st.error("E-mail ou senha inválidos.")
         except requests.RequestException:
             st.error("Não foi possível conectar ao serviço de autenticação.")
+    with st.expander("🔑 Esqueci minha senha / Primeiro acesso"):
+        st.caption("Informe o e-mail cadastrado. Se a conta existir e o envio estiver habilitado, você receberá instruções de recuperação.")
+        with st.form("recuperar_senha"):
+            email_recuperacao = st.text_input("E-mail cadastrado para recuperação").strip()
+            recuperar = st.form_submit_button("Enviar instruções")
+        if recuperar:
+            if "@" not in email_recuperacao or len(email_recuperacao) > 254:
+                st.warning("Informe um e-mail válido.")
+            else:
+                try:
+                    resultado = solicitar_recuperacao(email_recuperacao)
+                    resultado.raise_for_status()
+                except requests.RequestException:
+                    st.error("Não foi possível processar a solicitação agora. Tente novamente.")
+                else:
+                    st.success("Se o e-mail estiver cadastrado, as instruções de recuperação serão enviadas.")
     st.stop()
 
 try:
@@ -1215,6 +1274,7 @@ except Exception as erro:
     st.info(f"Tipo do erro: {type(erro).__name__}")
     st.stop()
 
+pagina_conta_usuario = st.Page(pagina_conta, title="Minha conta", icon="🔒")
 pagina_principal = st.Page(pagina_dashboard, title="Visão executiva", icon="📊", default=True)
 pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="📁")
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
@@ -1227,12 +1287,12 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: central-20261023-02")
+    st.caption("Versão: senhas-20261023-01")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
 
-paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes]
+paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes, pagina_conta_usuario]
 if perfil[0].get("perfil_global") == "admin":
     paginas.extend([pagina_central, pagina_gestao, pagina_admin])
 navegacao = st.navigation(paginas)
