@@ -1226,6 +1226,24 @@ def pagina_central_atas():
                          tipos.get(item["tipo"],item["tipo"]) + ": " + item["texto_proposto"])
 
 
+def icone_tipo_projeto(nome):
+    """Ícone visual inferido do nome, sem alterar a classificação dos dados."""
+    titulo = str(nome or "").casefold()
+    categorias = [
+        (("erp", "dynamics", "d365", "implantação", "implantacao"), "🏢", "Sistemas / ERP"),
+        (("dashboard", "painel", "power bi", "bi ", "analytics", "relatório"), "📊", "BI / Analytics"),
+        (("api", "integração", "integracao", "etl", "dados", "data"), "🔗", "Integração / Dados"),
+        (("automação", "automacao", "workflow", "processo", "rpa"), "⚙️", "Automação"),
+        (("segurança", "seguranca", "acesso", "lgpd", "compliance"), "🛡️", "Segurança"),
+        (("app", "aplicativo", "mobile", "portal", "site", "web"), "💻", "Aplicações"),
+        (("infra", "cloud", "azure", "nuvem", "rede"), "☁️", "Infraestrutura / Cloud"),
+    ]
+    for palavras, icone, categoria in categorias:
+        if any(palavra in titulo for palavra in palavras):
+            return icone, categoria
+    return "📁", "Projeto geral"
+
+
 def pagina_squads():
     st.title("👥 Minhas squads e acessos")
     st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
@@ -1245,6 +1263,8 @@ def pagina_squads():
     b.metric("Projetos autorizados", len(ids_visiveis))
     c.metric("Vínculos com squads", len(membros))
     st.markdown("**Legenda dos papéis:** gerente = gestão do projeto · líder = liderança · membro = participante · leitor = consulta.")
+    st.caption("**Ícones por tipo de projeto:** 🏢 ERP · 📊 BI/Analytics · 🔗 Integração/Dados · ⚙️ Automação · 🛡️ Segurança · 💻 Aplicações · ☁️ Cloud · 📁 Geral.")
+    st.caption("O tipo é sugerido a partir do nome do projeto; não altera os dados ou as permissões.")
     if not equipes:
         st.info("Nenhuma squad vinculada ao seu usuário.")
         return
@@ -1260,8 +1280,10 @@ def pagina_squads():
             if not projetos_equipe:
                 st.caption("Nenhum projeto autorizado vinculado a esta squad.")
             for p in projetos_equipe:
-                st.write("📁 **" + p["nome"] + "** · Acesso: " +
-                         acesso_por_projeto.get(p["id"], "não informado"))
+                icone, tipo = icone_tipo_projeto(p["nome"])
+                st.markdown(icone + " **" + html.escape(str(p["nome"])) +
+                            "** · " + tipo + " · Acesso: " +
+                            html.escape(str(acesso_por_projeto.get(p["id"], "não informado"))))
     st.info("Esta página é de consulta. A administração de membros e permissões será habilitada somente após configurar o perfil Administradora/PMO.")
 
 if not configurado():
@@ -1338,7 +1360,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-06")
+    st.caption("Versão: purple-tech-20261023-07")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
