@@ -514,6 +514,55 @@ def pagina_atas_ia():
     st.warning("A leitura automática não determina sozinha se uma pendência foi concluída. "
                "Mudanças entre atas ainda precisam de revisão humana.")
 
+def pagina_administracao():
+    st.title("🛡️ Administração de usuários")
+    st.caption("Consulta restrita a administradores · Dados do Supabase")
+    if perfil[0].get("perfil_global") != "admin":
+        st.error("Acesso restrito.")
+        return
+    try:
+        usuarios = consultar("perfis_usuarios", "id,nome,perfil_global,ativo")
+        acessos = consultar("projeto_acessos", "usuario_id,projeto_id,papel")
+        equipes = consultar("squads", "id,nome")
+        membros = consultar("squad_membros", "usuario_id,squad_id,papel")
+    except (requests.RequestException, PermissionError):
+        st.error("Não foi possível consultar o cadastro administrativo.")
+        return
+    if len(usuarios) < 2:
+        st.warning("A consulta administrativa não retornou os usuários esperados. Verifique as permissões RLS.")
+        return
+    a,b,c = st.columns(3)
+    a.metric("Usuários cadastrados", len(usuarios))
+    b.metric("Usuários ativos", sum(bool(u["ativo"]) for u in usuarios))
+    c.metric("Squads", len(equipes))
+    mapa_projetos = {p["id"]: p["nome"] for p in projetos}
+    mapa_equipes = {e["id"]: e["nome"] for e in equipes}
+    st.subheader("Cadastro central")
+    st.caption("Somente nome, perfil e situação são exibidos. E-mails, senhas e tokens não aparecem neste painel.")
+    st.dataframe([{"Nome":u["nome"], "Perfil":u["perfil_global"],
+                   "Situação":"Ativo" if u["ativo"] else "Inativo"}
+                  for u in sorted(usuarios,key=lambda x:x["nome"])],
+                 hide_index=True,use_container_width=True)
+    st.subheader("Permissões por usuário")
+    selecionado = st.selectbox("Selecione o usuário", usuarios,
+                              format_func=lambda u:u["nome"])
+    identificador = selecionado["id"]
+    linhas = [{"Projeto":mapa_projetos.get(a["projeto_id"],"Projeto indisponível"),
+               "Papel":a["papel"]} for a in acessos if a["usuario_id"]==identificador]
+    st.markdown("**Projetos autorizados**")
+    if linhas:
+        st.dataframe(linhas,hide_index=True,use_container_width=True)
+    else:
+        st.info("Nenhum projeto vinculado.")
+    linhas_squad = [{"Squad":mapa_equipes.get(m["squad_id"],"Squad indisponível"),
+                     "Papel":m["papel"]} for m in membros if m["usuario_id"]==identificador]
+    st.markdown("**Squads vinculadas**")
+    if linhas_squad:
+        st.dataframe(linhas_squad,hide_index=True,use_container_width=True)
+    else:
+        st.info("Nenhuma squad vinculada.")
+    st.info("Edição desabilitada nesta fase. Alterações futuras terão validação no banco e trilha de auditoria.")
+
 def pagina_squads():
     st.title("👥 Minhas squads e acessos")
     st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
@@ -595,6 +644,7 @@ pagina_principal = st.Page(pagina_dashboard, title="Visão executiva", icon="�
 pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="📁")
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
 pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
+pagina_admin = st.Page(pagina_administracao, title="Administração", icon="🛡️")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
@@ -603,7 +653,10 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-navegacao = st.navigation([pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes])
+paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes]
+if perfil[0].get("perfil_global") == "admin":
+    paginas.append(pagina_admin)
+navegacao = st.navigation(paginas)
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
