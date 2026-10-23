@@ -651,16 +651,78 @@ def atualizar_registro(tabela, registro_id, dados):
         raise PermissionError("Registro não atualizado ou acesso não autorizado.")
 
 
+def criar_registro(tabela, dados):
+    permitidos = {"projetos": {"nome", "responsavel", "inicio", "prazo", "status"},
+                  "pendencias": {"projeto_id", "descricao", "responsavel", "prazo", "status", "origem"}}
+    if tabela not in permitidos or not dados or not set(dados).issubset(permitidos[tabela]):
+        raise ValueError("Campos não permitidos.")
+    url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
+    headers = dict(cabecalhos_usuario())
+    headers["Prefer"] = "return=representation"
+    resposta = requests.post(url, headers=headers, params={"select":"id"}, json=dados, timeout=15)
+    resposta.raise_for_status()
+    if len(resposta.json()) != 1:
+        raise PermissionError("Cadastro não confirmado.")
+
+
 def pagina_gerenciar_portfolio():
     st.title("📝 Gestão de projetos e pendências")
     st.caption("Edição administrativa · Dados protegidos por RLS e alterações auditadas")
     if perfil[0].get("perfil_global") != "admin":
         st.error("Acesso restrito.")
         return
+    aba_novo, aba_nova_pend, aba_projeto, aba_pendencias = st.tabs(
+        ["Novo projeto", "Nova pendência", "Editar projeto", "Editar pendências"])
+    with aba_novo:
+        with st.form("form_novo_projeto"):
+            nome_novo = st.text_input("Nome do projeto")
+            responsavel_novo = st.text_input("Responsável pelo projeto")
+            inicio_novo = st.date_input("Data de início", value=date.today())
+            prazo_novo = st.date_input("Data de entrega", value=date.today())
+            status_novo = st.selectbox("Situação inicial", ["em_andamento", "pausado"])
+            confirma_novo = st.checkbox("Confirmo a criação do projeto")
+            salvar_novo = st.form_submit_button("Criar projeto", type="primary", disabled=not confirma_novo)
+        if salvar_novo:
+            if not nome_novo.strip() or not responsavel_novo.strip() or prazo_novo < inicio_novo:
+                st.error("Informe nome, responsável e prazo válido.")
+            else:
+                try:
+                    criar_registro("projetos", {"nome": nome_novo.strip(),
+                        "responsavel": responsavel_novo.strip(), "inicio": inicio_novo.isoformat(),
+                        "prazo": prazo_novo.isoformat(), "status": status_novo})
+                except (requests.RequestException, PermissionError, ValueError):
+                    st.error("Não foi possível criar o projeto. Confira os dados e se o nome já existe.")
+                else:
+                    st.success("Projeto criado e auditado.")
+                    st.rerun()
+    with aba_nova_pend:
+        if not projetos:
+            st.info("Cadastre um projeto primeiro.")
+        else:
+            with st.form("form_nova_pendencia"):
+                destino = st.selectbox("Projeto", projetos, format_func=lambda p:p["nome"])
+                descricao_nova = st.text_area("Descrição da pendência")
+                responsavel_pnovo = st.text_input("Responsável pela pendência")
+                prazo_pnovo = st.date_input("Prazo previsto", value=date.today())
+                confirma_pnovo = st.checkbox("Confirmo a criação da pendência")
+                salvar_pnovo = st.form_submit_button("Criar pendência", type="primary",
+                                                    disabled=not confirma_pnovo)
+            if salvar_pnovo:
+                if not descricao_nova.strip():
+                    st.error("Informe a descrição.")
+                else:
+                    try:
+                        criar_registro("pendencias", {"projeto_id": destino["id"],
+                            "descricao": descricao_nova.strip(),
+                            "responsavel": responsavel_pnovo.strip() or None,
+                            "prazo": prazo_pnovo.isoformat(), "status": "aberta", "origem": "manual"})
+                    except (requests.RequestException, PermissionError, ValueError):
+                        st.error("Não foi possível criar a pendência.")
+                    else:
+                        st.success("Pendência criada e auditada.")
+                        st.rerun()
     if not projetos:
-        st.info("Nenhum projeto disponível.")
         return
-    aba_projeto, aba_pendencias = st.tabs(["Editar projeto", "Editar pendências"])
     with aba_projeto:
         escolhido = st.selectbox("Projeto", projetos, format_func=lambda p:p["nome"], key="editar_projeto")
         with st.form("form_edicao_projeto"):
@@ -822,7 +884,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: portfolio-20261023-01")
+    st.caption("Versão: portfolio-20261023-02")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
