@@ -1270,7 +1270,10 @@ def pagina_squads():
         return
     for equipe in equipes:
         with st.container(border=True):
-            st.subheader("🧩 " + equipe["nome"])
+            icone_squad = {"erp":"🏢","dados & bi":"📊","integrações":"🔗","integracoes":"🔗",
+                           "automação":"⚙️","automacao":"⚙️"}
+            simbolo = icone_squad.get(str(equipe["nome"]).strip().casefold(), "👥")
+            st.subheader(simbolo + " " + equipe["nome"])
             if equipe.get("descricao"):
                 st.caption(equipe["descricao"])
             papeis = [m["papel"] for m in membros if m["squad_id"] == equipe["id"]]
@@ -1360,7 +1363,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-07")
+    st.caption("Versão: purple-tech-20261023-08")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
