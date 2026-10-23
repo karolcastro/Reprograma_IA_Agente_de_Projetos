@@ -156,6 +156,71 @@ def pagina_dashboard():
     k3.metric("Em atenção", sum(p["farol"] == "amarelo" for p in projetos))
     k4.metric("Atrasados", sum(p["farol"] == "vermelho" for p in projetos))
 
+    st.subheader("📋 Acompanhamento de tarefas")
+    st.caption("Indicadores e prioridades atualizados a partir das pendências que você tem permissão para consultar.")
+    try:
+        tarefas = consultar("pendencias",
+            "id,projeto_id,descricao,responsavel,prazo,status,prioridade,progresso")
+    except (requests.RequestException, PermissionError):
+        st.warning("Não foi possível carregar as tarefas. Tente atualizar a página.")
+        tarefas = None
+    if tarefas is not None:
+        hoje = date.today()
+        tarefas_ativas = [t for t in tarefas if t.get("status") != "concluida"]
+        vencidas = [t for t in tarefas_ativas if t.get("prazo") and
+                    date.fromisoformat(str(t["prazo"])) < hoje]
+        proximas = [t for t in tarefas_ativas if t.get("prazo") and
+                    hoje <= date.fromisoformat(str(t["prazo"])) <=
+                    date.fromordinal(hoje.toordinal() + 7)]
+        bloqueadas = [t for t in tarefas_ativas if t.get("status") == "bloqueada"]
+        concluidas = [t for t in tarefas if t.get("status") == "concluida"]
+        indicadores = st.columns(5)
+        for coluna, titulo, valor in zip(indicadores,
+            ["Tarefas", "Atrasadas", "Bloqueadas", "Concluídas", "Próximos 7 dias"],
+            [len(tarefas), len(vencidas), len(bloqueadas), len(concluidas), len(proximas)]):
+            coluna.metric(titulo, valor)
+        st.caption("Atrasadas = não concluídas com prazo vencido. Próximos 7 dias = não concluídas com vencimento entre hoje e sete dias.")
+        nomes_projetos = {p["id"]: p["nome"] for p in projetos}
+        rotulos_prioridade = {"baixa": "🟢 Baixa", "media": "🟡 Média",
+                             "alta": "🟠 Alta", "critica": "🔴 Crítica"}
+        rotulos_status = {"aberta": "Não iniciada", "em_andamento": "Em andamento",
+                          "bloqueada": "Bloqueada", "concluida": "Concluída"}
+        opcoes_projetos = ["Todos"] + sorted(set(nomes_projetos.values()))
+        col_filtro_projeto, col_filtro_prioridade, col_filtro_status = st.columns(3)
+        with col_filtro_projeto:
+            filtro_projeto_t = st.selectbox("Projeto das tarefas", opcoes_projetos, key="filtro_tarefas_projeto")
+        with col_filtro_prioridade:
+            filtro_prioridade_t = st.selectbox("Prioridade", ["Todas", "Crítica", "Alta", "Média", "Baixa"], key="filtro_tarefas_prioridade")
+        with col_filtro_status:
+            filtro_status_t = st.selectbox("Status", ["Todos", "Não iniciada", "Em andamento", "Bloqueada", "Concluída"], key="filtro_tarefas_status")
+        linhas_tarefas = []
+        for t in tarefas:
+            prioridade = rotulos_prioridade.get(t.get("prioridade"), "🟡 Média")
+            situacao_t = rotulos_status.get(t.get("status"), str(t.get("status") or "Não definida"))
+            nome_projeto = nomes_projetos.get(t["projeto_id"], "Projeto indisponível")
+            if filtro_projeto_t != "Todos" and nome_projeto != filtro_projeto_t:
+                continue
+            if filtro_prioridade_t != "Todas" and not prioridade.endswith(filtro_prioridade_t):
+                continue
+            if filtro_status_t != "Todos" and situacao_t != filtro_status_t:
+                continue
+            linhas_tarefas.append({
+                "Projeto": nome_projeto,
+                "Tarefa": t.get("descricao") or "",
+                "Responsável": t.get("responsavel") or "Não definido",
+                "Prioridade": prioridade,
+                "Status": situacao_t,
+                "Progresso (%)": int(t.get("progresso") or 0),
+                "Prazo": str(t.get("prazo") or "Não definido"),
+            })
+        if linhas_tarefas:
+            st.dataframe(pd.DataFrame(linhas_tarefas), hide_index=True, use_container_width=True,
+                column_config={"Progresso (%)": st.column_config.ProgressColumn(
+                    "Progresso (%)", min_value=0, max_value=100, format="%d%%")})
+        else:
+            st.info("Nenhuma tarefa encontrada para os filtros selecionados.")
+        st.caption("Legenda de prioridades: 🔴 Crítica · 🟠 Alta · 🟡 Média · 🟢 Baixa. Os indicadores gerais respeitam os acessos do usuário.")
+
     st.subheader("Resumo para tomada de decisão")
     st.caption("Três perguntas para entender o portfólio rapidamente. "
                "Indicadores calculados com os dados atuais dos projetos.")
@@ -907,7 +972,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: tarefas-20261023-01")
+    st.caption("Versão: tarefas-20261023-02")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
