@@ -965,6 +965,154 @@ def pagina_gerenciar_portfolio():
                         st.rerun()
 
 
+def pagina_central_atas():
+    """Fila central de propostas de todas as atas de demonstração acessíveis."""
+    import hashlib
+    from atas_github import atas_do_projeto, extrair_trechos
+
+    st.title("📥 Central de aprovações das atas")
+    st.caption("Todos os projetos em um só lugar · aprovação, ajustes e rejeição")
+    if perfil[0].get("perfil_global") != "admin":
+        st.error("Acesso restrito a administradores.")
+        return
+    st.warning("Nesta versão, a fonte é a pasta de atas fictícias do GitHub público. "
+               "Não coloque atas reais ou confidenciais nesse repositório.")
+    base = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/sugestoes_atas"
+    @st.cache_data(ttl=600, show_spinner=False)
+    def buscar_todas_atas(lista_projetos):
+        propostas = []
+        erros = []
+        categorias = {"Pendências":"pendencia", "Riscos e gargalos":"gargalo",
+                      "Prazos":"prazo", "Atualizações":"atualizacao", "Decisões":"decisao"}
+        for pid, nome in lista_projetos:
+            try:
+                atas = atas_do_projeto(nome)
+                for ata in atas:
+                    for categoria, trechos in extrair_trechos(ata["texto"]).items():
+                        if categoria not in categorias:
+                            continue
+                        for trecho in trechos:
+                            descricao = trecho.split(":", 1)[-1].strip()
+                            if not descricao:
+                                continue
+                            origem = "|".join([str(pid), ata["arquivo"], categoria, trecho])
+                            chave = hashlib.sha256(origem.encode("utf-8")).hexdigest()
+                            propostas.append({
+                                "projeto_id":pid, "fonte_arquivo":ata["arquivo"],
+                                "fonte_data":ata["data"], "tipo":categorias[categoria],
+                                "texto_original":trecho, "texto_proposto":descricao,
+                                "chave_fonte":chave, "status":"pendente"})
+            except (requests.RequestException, ValueError) as erro:
+                erros.append(nome + " (" + type(erro).__name__ + ")")
+        return propostas, erros
+
+    if st.button("🔄 Verificar todas as atas novamente"):
+        buscar_todas_atas.clear()
+        st.rerun()
+    with st.spinner("Verificando atas de todos os projetos..."):
+        propostas, erros = buscar_todas_atas(tuple((p["id"], p["nome"]) for p in projetos))
+    if erros:
+        st.warning("Não foi possível verificar: " + ", ".join(erros) +
+                   ". As propostas desses projetos podem estar incompletas.")
+    if propostas:
+        try:
+            headers = dict(cabecalhos_usuario())
+            headers["Prefer"] = "resolution=ignore-duplicates,return=minimal"
+            resposta = requests.post(base, headers=headers, json=propostas, timeout=30)
+            resposta.raise_for_status()
+        except requests.RequestException:
+            st.warning("Não foi possível sincronizar todas as propostas. A fila existente continua disponível.")
+    try:
+        fila = consultar("sugestoes_atas",
+            "id,projeto_id,fonte_arquivo,fonte_data,tipo,texto_original,texto_proposto,status,responsavel,prazo,prioridade,impacto",
+            {"order":"id.desc"})
+    except (requests.RequestException, PermissionError):
+        st.error("Não foi possível consultar a fila de aprovações.")
+        return
+    pendentes = [item for item in fila if item["status"] == "pendente"]
+    aprovadas = [item for item in fila if item["status"] == "aprovada"]
+    rejeitadas = [item for item in fila if item["status"] == "rejeitada"]
+    c1,c2,c3 = st.columns(3)
+    c1.metric("Aguardando revisão",len(pendentes))
+    c2.metric("Aprovadas",len(aprovadas))
+    c3.metric("Rejeitadas",len(rejeitadas))
+    nomes = {p["id"]:p["nome"] for p in projetos}
+    filtro = st.selectbox("Filtrar projetos", ["Todos"] + sorted(nomes.values()))
+    tipos = {"pendencia":"Pendência", "gargalo":"Gargalo", "prazo":"Prazo",
+             "atualizacao":"Atualização / entrega", "decisao":"Decisão"}
+    visiveis = [item for item in pendentes
+                if filtro == "Todos" or nomes.get(item["projeto_id"]) == filtro]
+    st.caption("As sugestões são detectadas automaticamente ao abrir a central; "
+               "a atualização dos projetos depende de aprovação.")
+    if not visiveis:
+        st.success("Nenhuma sugestão pendente para os filtros selecionados.")
+    for item in visiveis:
+        titulo = nomes.get(item["projeto_id"], "Projeto") + " · " + tipos.get(item["tipo"], item["tipo"])
+        with st.expander(titulo + " · " + str(item.get("fonte_data") or "")):
+            st.caption("Fonte: " + item["fonte_arquivo"])
+            st.write("**Trecho original:** " + item["texto_original"])
+            with st.form("revisao_" + str(item["id"])):
+                descricao = st.text_area("Texto revisado", value=item["texto_proposto"])
+                responsavel = st.text_input("Responsável", value=item.get("responsavel") or "")
+                prazo = st.date_input("Prazo (se aplicável)",
+                    value=date.fromisoformat(item["prazo"]) if item.get("prazo") else None)
+                prioridade = st.selectbox("Prioridade", ["media","alta","critica","baixa"],
+                    index=["media","alta","critica","baixa"].index(item.get("prioridade") or "media"))
+                impacto = st.selectbox("Impacto", ["medio","alto","baixo"],
+                    index=["medio","alto","baixo"].index(item.get("impacto") or "medio"))
+                acao = st.radio("Decisão", ["Aprovar", "Rejeitar"], horizontal=True)
+                confirma = st.checkbox("Confirmo minha decisão sobre esta sugestão")
+                enviar = st.form_submit_button("Registrar decisão", type="primary")
+            if enviar:
+                if not confirma or not descricao.strip():
+                    st.warning("Confirme a decisão e preencha o texto revisado.")
+                    continue
+                if acao == "Aprovar" and item["tipo"] in ("prazo","atualizacao","decisao"):
+                    st.info("Essa categoria requer interpretação contextual. "
+                            "Use Gerenciar projetos para aplicar alterações em datas, "
+                            "responsáveis ou entregas. A sugestão permanece pendente.")
+                    continue
+                try:
+                    if acao == "Aprovar":
+                        if item["tipo"] == "pendencia":
+                            criar_registro("pendencias", {
+                                "projeto_id":item["projeto_id"], "descricao":descricao.strip(),
+                                "responsavel":responsavel.strip() or None,
+                                "prazo":prazo.isoformat() if prazo else None,
+                                "status":"aberta", "origem":"ata",
+                                "prioridade":prioridade, "progresso":0})
+                        elif item["tipo"] == "gargalo":
+                            criar_registro("gargalos", {
+                                "projeto_id":item["projeto_id"], "descricao":descricao.strip(),
+                                "impacto":impacto, "status":"aberto"})
+                    headers = dict(cabecalhos_usuario())
+                    headers["Prefer"] = "return=representation"
+                    resposta = requests.patch(base, headers=headers,
+                        params={"id":"eq." + str(item["id"]), "status":"eq.pendente",
+                                "select":"id"},
+                        json={"status":"aprovada" if acao=="Aprovar" else "rejeitada",
+                              "texto_proposto":descricao.strip(),
+                              "responsavel":responsavel.strip() or None,
+                              "prazo":prazo.isoformat() if prazo else None,
+                              "prioridade":prioridade, "impacto":impacto,
+                              "revisado_por":st.session_state["auth_user_id"],
+                              "revisado_em":date.today().isoformat()}, timeout=15)
+                    resposta.raise_for_status()
+                    if len(resposta.json()) != 1:
+                        raise PermissionError("A sugestão não foi atualizada.")
+                except (requests.RequestException, PermissionError, ValueError):
+                    st.error("Falha ao registrar a decisão. Verifique a fila antes de tentar novamente.")
+                else:
+                    st.success("Decisão registrada e auditada.")
+                    st.rerun()
+    with st.expander("Histórico de decisões"):
+        for item in fila:
+            if item["status"] != "pendente":
+                st.write(("✅ " if item["status"]=="aprovada" else "❌ ") +
+                         nomes.get(item["projeto_id"],"Projeto") + " · " +
+                         tipos.get(item["tipo"],item["tipo"]) + ": " + item["texto_proposto"])
+
+
 def pagina_squads():
     st.title("👥 Minhas squads e acessos")
     st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
@@ -1053,20 +1201,21 @@ pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="�
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
 pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
 pagina_admin = st.Page(pagina_administracao, title="Administração", icon="🛡️")
+pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", icon="📥")
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 with st.sidebar:
     st.markdown("## ProjectFlow AI")
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: atas-20261023-01")
+    st.caption("Versão: central-20261023-01")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
 
 paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes]
 if perfil[0].get("perfil_global") == "admin":
-    paginas.extend([pagina_gestao, pagina_admin])
+    paginas.extend([pagina_central, pagina_gestao, pagina_admin])
 navegacao = st.navigation(paginas)
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
