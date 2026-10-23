@@ -637,7 +637,7 @@ def atualizar_registro(tabela, registro_id, dados):
     """PATCH restrito a campos permitidos; Supabase aplica RLS e auditoria."""
     campos_permitidos = {
         "projetos": {"nome", "responsavel", "inicio", "prazo", "status"},
-        "pendencias": {"descricao", "responsavel", "prazo", "status"},
+        "pendencias": {"descricao", "responsavel", "prazo", "status", "prioridade", "progresso"},
     }
     if tabela not in campos_permitidos or not dados or not set(dados).issubset(campos_permitidos[tabela]):
         raise ValueError("Campos não permitidos.")
@@ -653,7 +653,7 @@ def atualizar_registro(tabela, registro_id, dados):
 
 def criar_registro(tabela, dados):
     permitidos = {"projetos": {"nome", "responsavel", "inicio", "prazo", "status"},
-                  "pendencias": {"projeto_id", "descricao", "responsavel", "prazo", "status", "origem"}}
+                  "pendencias": {"projeto_id", "descricao", "responsavel", "prazo", "status", "origem", "prioridade", "progresso"}}
     if tabela not in permitidos or not dados or not set(dados).issubset(permitidos[tabela]):
         raise ValueError("Campos não permitidos.")
     url = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/" + tabela
@@ -671,6 +671,7 @@ def pagina_gerenciar_portfolio():
     if perfil[0].get("perfil_global") != "admin":
         st.error("Acesso restrito.")
         return
+    st.caption("Legenda: 🔴 Crítica | 🟠 Alta | 🟡 Média | 🟢 Baixa")
     aba_novo, aba_nova_pend, aba_projeto, aba_pendencias = st.tabs(
         ["Novo projeto", "Nova pendência", "Editar projeto", "Editar pendências"])
     with aba_novo:
@@ -706,6 +707,7 @@ def pagina_gerenciar_portfolio():
                 descricao_nova = st.text_area("Descrição da pendência")
                 responsavel_pnovo = st.text_input("Responsável pela pendência")
                 prazo_pnovo = st.date_input("Prazo previsto", value=date.today())
+                prioridade_nova = st.selectbox("Prioridade", ["media", "alta", "critica", "baixa"], format_func=lambda x: {"media":"🟡 Média","alta":"🟠 Alta","critica":"🔴 Crítica","baixa":"🟢 Baixa"}[x])
                 confirma_pnovo = st.checkbox("Confirmo a criação da pendência")
                 salvar_pnovo = st.form_submit_button("Criar pendência", type="primary")
             if salvar_pnovo and not confirma_pnovo:
@@ -718,7 +720,8 @@ def pagina_gerenciar_portfolio():
                         criar_registro("pendencias", {"projeto_id": destino["id"],
                             "descricao": descricao_nova.strip(),
                             "responsavel": responsavel_pnovo.strip() or None,
-                            "prazo": prazo_pnovo.isoformat(), "status": "aberta", "origem": "manual"})
+                            "prazo": prazo_pnovo.isoformat(), "status": "aberta", "origem": "manual",
+                            "prioridade": prioridade_nova, "progresso": 0})
                     except (requests.RequestException, PermissionError, ValueError):
                         st.error("Não foi possível criar a pendência.")
                     else:
@@ -757,7 +760,7 @@ def pagina_gerenciar_portfolio():
         escolhido_p = st.selectbox("Projeto das pendências", projetos,
                                   format_func=lambda p:p["nome"], key="projeto_pendencias")
         try:
-            pendencias = consultar("pendencias", "id,descricao,responsavel,prazo,status",
+            pendencias = consultar("pendencias", "id,descricao,responsavel,prazo,status,prioridade,progresso",
                                   {"projeto_id":"eq." + str(escolhido_p["id"])})
         except (requests.RequestException, PermissionError):
             st.error("Não foi possível carregar as pendências.")
@@ -772,9 +775,20 @@ def pagina_gerenciar_portfolio():
                 responsavel_p = st.text_input("Responsável", value=pendencia.get("responsavel") or "")
                 prazo_p = st.date_input("Prazo da pendência",
                     value=date.fromisoformat(str(pendencia["prazo"])) if pendencia.get("prazo") else None)
-                opcoes = ["aberta", "concluida"]
+                opcoes = ["aberta", "em_andamento", "bloqueada", "concluida"]
+                nomes_status = {"aberta":"Não iniciada", "em_andamento":"Em andamento",
+                                "bloqueada":"Bloqueada", "concluida":"Concluída"}
                 status_p = st.selectbox("Situação da pendência", opcoes,
-                    index=opcoes.index(pendencia["status"]))
+                    index=opcoes.index(pendencia["status"]), format_func=lambda x: nomes_status[x])
+                prioridades = ["baixa", "media", "alta", "critica"]
+                nomes_prioridade = {"baixa":"🟢 Baixa", "media":"🟡 Média",
+                                    "alta":"🟠 Alta", "critica":"🔴 Crítica"}
+                prioridade_p = st.selectbox("Prioridade", prioridades,
+                    index=prioridades.index(pendencia.get("prioridade") or "media"),
+                    format_func=lambda x: nomes_prioridade[x])
+                progresso_p = st.slider("Progresso (%)", 0, 100,
+                    value=int(pendencia.get("progresso") or 0), step=5)
+                st.caption("Ao concluir a pendência, o progresso será automaticamente 100%.")
                 confirmar_p = st.checkbox("Confirmo a atualização desta pendência")
                 salvar_p = st.form_submit_button("Salvar pendência", type="primary")
             if salvar_p and not confirmar_p:
@@ -782,13 +796,16 @@ def pagina_gerenciar_portfolio():
             if salvar_p and confirmar_p:
                 if not descricao.strip():
                     st.error("A descrição é obrigatória.")
+                elif status_p != "concluida" and progresso_p == 100:
+                    st.error("Para marcar 100%, selecione Concluída.")
                 else:
                     try:
                         atualizar_registro("pendencias", pendencia["id"], {
                             "descricao":descricao.strip(),
                             "responsavel":responsavel_p.strip() or None,
                             "prazo":prazo_p.isoformat() if prazo_p else None,
-                            "status":status_p})
+                            "status":status_p, "prioridade":prioridade_p,
+                            "progresso":100 if status_p == "concluida" else progresso_p})
                     except (requests.RequestException, PermissionError, ValueError):
                         st.error("Não foi possível salvar. Verifique os dados e suas permissões.")
                     else:
@@ -890,7 +907,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: portfolio-20261023-04")
+    st.caption("Versão: tarefas-20261023-01")
     if st.button("Sair"):
         st.session_state.clear()
         st.rerun()
