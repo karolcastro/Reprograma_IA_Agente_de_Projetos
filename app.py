@@ -1540,7 +1540,7 @@ st.markdown("""
   max-width:1380px!important;
   padding:3.3rem clamp(1rem,3vw,2rem) 2rem!important;
 }
-.pf-brand{font-size:clamp(1.35rem,2vw,1.75rem);font-weight:850;color:#3D247E;letter-spacing:-.035em;line-height:1.2}
+.pf-brand{font-size:clamp(2.35rem,3.8vw,3.2rem);font-weight:850;color:#3D247E;letter-spacing:-.035em;line-height:1.2}
 .pf-brand .pf-ai{background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent}
 [data-testid="stButton"] button[kind="secondary"][data-testid="baseButton-secondary"]{transition:background .15s ease}
 .st-key-logout_button button{width:auto!important;min-width:0!important;padding:.22rem .7rem!important;height:30px!important;min-height:30px!important;font-size:.76rem!important;border-radius:8px!important;border:1px solid #C4B5FD!important;background:#F0EAFF!important;color:#4C1D95!important;float:right!important}
@@ -1553,7 +1553,7 @@ st.markdown("""
 .st-key-pf_topbar [data-testid="stPills"] button{background:#FFFFFF!important;border:1px solid #DCD5F0!important;font-weight:600!important;border-radius:8px!important}
 .st-key-pf_topbar [data-testid="stPills"] button:hover{background:#E8E1FF!important}
 .st-key-pf_topbar .st-key-logout_button button{background:#E8DDFF!important}
-[data-testid="stMain"] h1{font-size:clamp(1.65rem,2.5vw,2.15rem)!important;line-height:1.15!important;margin-top:0!important}
+[data-testid="stMain"] h1{font-size:clamp(1.5rem,2.2vw,2rem)!important;line-height:1.15!important;margin-top:0!important}
 .st-key-pf_topbar + div{margin-top:0!important}
 
 .pf-user{text-align:right;font-weight:700;color:#34206E;font-size:.83rem}
@@ -1568,7 +1568,7 @@ st.markdown("""
 }
 @media(max-width:800px){
  [data-testid="stMain"] .block-container{padding:3.3rem .8rem 2rem!important}
- .pf-brand{font-size:1rem}
+ .pf-brand{font-size:1.9rem}
  .pf-user{font-size:.72rem}
  [data-testid="stPills"] button{font-size:.74rem!important}
 }
