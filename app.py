@@ -1534,20 +1534,31 @@ pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
 pagina_admin = st.Page(pagina_administracao, title="Administração", icon="🛡️")
 pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", icon="📥")
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
-with st.sidebar:
-    st.markdown("## ProjectFlow AI")
-    st.caption("PROJECT PORTFOLIO")
-    st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
-    st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-13")
-    if st.button("🚪 Sair", key="logout_button", use_container_width=True):
+st.markdown("""
+<style>
+[data-testid="stHeader"] {background:rgba(248,245,255,.96)!important;}
+[data-testid="stMain"] .block-container {padding-top:1.2rem!important;}
+[data-testid="stNavigation"] {background:linear-gradient(100deg,#F1EAFE,#E8F0FF)!important;}
+[data-testid="stNavigation"] a[aria-current="page"] {
+  color:#5B21B6!important;border-bottom:3px solid #7C3AED!important;
+}
+</style>
+""", unsafe_allow_html=True)
+cabecalho_esquerda, cabecalho_direita = st.columns([3, 2], vertical_alignment="center")
+with cabecalho_esquerda:
+    st.markdown("### 💜 ProjectFlow AI")
+    st.caption("Gestão de projetos • Portfólio • Governança")
+with cabecalho_direita:
+    st.caption("👤 " + st.session_state.get("email_usuario", "") +
+               " · " + str(perfil[0].get("perfil_global", "usuário")))
+    if st.button("🚪 Sair", key="logout_button"):
         st.session_state.clear()
         st.rerun()
 
 paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes, pagina_conta_usuario]
 if perfil[0].get("perfil_global") == "admin":
     paginas.extend([pagina_central, pagina_gestao, pagina_admin])
-navegacao = st.navigation(paginas)
+navegacao = st.navigation(paginas, position="top")
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
