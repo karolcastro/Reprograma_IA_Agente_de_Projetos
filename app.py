@@ -1538,14 +1538,24 @@ st.markdown("""
 <style>
 [data-testid="stMain"] .block-container {
   max-width:1380px!important;
-  padding:3rem clamp(1rem,3vw,2rem) 2rem!important;
+  padding:3.3rem clamp(1rem,3vw,2rem) 2rem!important;
 }
 .pf-brand{font-size:clamp(1.35rem,2vw,1.75rem);font-weight:850;color:#3D247E;letter-spacing:-.035em;line-height:1.2}
 .pf-brand .pf-ai{background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent}
 [data-testid="stButton"] button[kind="secondary"][data-testid="baseButton-secondary"]{transition:background .15s ease}
 .st-key-logout_button button{width:auto!important;min-width:0!important;padding:.22rem .7rem!important;height:30px!important;min-height:30px!important;font-size:.76rem!important;border-radius:8px!important;border:1px solid #C4B5FD!important;background:#F0EAFF!important;color:#4C1D95!important;float:right!important}
 .st-key-logout_button button:hover{background:#E3D8FF!important}
-.pf-subtitle{font-size:.72rem;color:#746795}
+.pf-subtitle{font-size:.68rem;color:#746795;letter-spacing:.09em;margin-top:3px}
+.st-key-pf_topbar{background:linear-gradient(110deg,#F5F0FF,#EDF3FF)!important;border:1px solid #E3DAFB!important;border-radius:14px!important;padding:10px 16px 4px!important;margin-bottom:0!important}
+.st-key-pf_topbar [data-testid="stHorizontalBlock"]{align-items:center!important}
+.st-key-pf_topbar [data-testid="stVerticalBlock"]{gap:.15rem!important}
+.st-key-pf_topbar [data-testid="stPills"]{margin:0!important;padding:0!important}
+.st-key-pf_topbar [data-testid="stPills"] button{background:#FFFFFF!important;border:1px solid #DCD5F0!important;font-weight:600!important;border-radius:8px!important}
+.st-key-pf_topbar [data-testid="stPills"] button:hover{background:#E8E1FF!important}
+.st-key-pf_topbar .st-key-logout_button button{background:#E8DDFF!important}
+[data-testid="stMain"] h1{font-size:clamp(1.65rem,2.5vw,2.15rem)!important;line-height:1.15!important;margin-top:0!important}
+.st-key-pf_topbar + div{margin-top:0!important}
+
 .pf-user{text-align:right;font-weight:700;color:#34206E;font-size:.83rem}
 .pf-role{text-align:right;color:#77689D;font-size:.7rem}
 [data-testid="stPills"]{margin-top:-.4rem!important;margin-bottom:-.6rem!important}
@@ -1564,27 +1574,28 @@ st.markdown("""
 }
 </style>
 """,unsafe_allow_html=True)
-cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([6.8,2.2,0.65],vertical_alignment="center",gap="small")
-with cabecalho_esquerda:
-    st.markdown('<div class="pf-brand">💜 ProjectFlow <span class="pf-ai">AI</span></div><div class="pf-subtitle">GERENCIAMENTO DE PROJETOS</div>',unsafe_allow_html=True)
-with cabecalho_usuario:
-    st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
-with cabecalho_sair:
-    if st.button("↪ Sair",key="logout_button"):
-        st.session_state.clear()
-        st.rerun()
+with st.container(key="pf_topbar"):
+    cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([6.8,2.2,0.65],vertical_alignment="center",gap="small")
+    with cabecalho_esquerda:
+        st.markdown('<div class="pf-brand">💜 ProjectFlow <span class="pf-ai">AI</span></div><div class="pf-subtitle">GERENCIAMENTO DE PROJETOS</div>',unsafe_allow_html=True)
+    with cabecalho_usuario:
+        st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
+    with cabecalho_sair:
+        if st.button("↪ Sair",key="logout_button"):
+            st.session_state.clear()
+            st.rerun()
 
-paginas=[pagina_principal,pagina_detalhe,pagina_atas,pagina_equipes,pagina_conta_usuario]
-if perfil[0].get("perfil_global")=="admin":
-    paginas.extend([pagina_central,pagina_gestao,pagina_admin])
-navegacao=st.navigation(paginas,position="hidden")
-rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Squads e acessos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Administração":"🛡️ Admin"}
-opcoes_menu=[rotulos_menu.get(p.title,p.title) for p in paginas]
-destinos_menu=dict(zip(opcoes_menu,paginas))
-selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
-if selecao_menu:
-    st.session_state["menu_compacto"]=None
-    st.switch_page(destinos_menu[selecao_menu])
+    paginas=[pagina_principal,pagina_detalhe,pagina_atas,pagina_equipes,pagina_conta_usuario]
+    if perfil[0].get("perfil_global")=="admin":
+        paginas.extend([pagina_central,pagina_gestao,pagina_admin])
+    navegacao=st.navigation(paginas,position="hidden")
+    rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Squads e acessos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Administração":"🛡️ Admin"}
+    opcoes_menu=[rotulos_menu.get(p.title,p.title) for p in paginas]
+    destinos_menu=dict(zip(opcoes_menu,paginas))
+    selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
+    if selecao_menu:
+        st.session_state["menu_compacto"]=None
+        st.switch_page(destinos_menu[selecao_menu])
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
