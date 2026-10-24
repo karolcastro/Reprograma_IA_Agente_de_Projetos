@@ -1470,8 +1470,8 @@ if not st.session_state.get("access_token"):
     </style>
     <div style="height:7px;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#4F46E5,#2563EB);margin-bottom:1.5rem"></div>
     """, unsafe_allow_html=True)
-    st.title("🔐 Gerenciamento de Projetos com IA")
-    st.caption("Acesso individual · Entre com seu usuário do Supabase")
+    st.markdown('<div style="font-size:clamp(2rem,4.5vw,3.1rem);font-weight:850;line-height:1.16;letter-spacing:-.04em;color:#3D247E;margin:.15rem 0 .5rem">💜 ProjectFlow <span style="background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent">AI</span></div><div style="font-size:.76rem;letter-spacing:.11em;color:#62548C;margin-bottom:1rem">GERENCIAMENTO DE PROJETOS</div>', unsafe_allow_html=True)
+    st.caption("Acesse sua conta para acompanhar projetos, equipes e entregas.")
     with st.form("acesso_individual"):
         email = st.text_input("E-mail").strip()
         senha = st.text_input("Senha", type="password")
