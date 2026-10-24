@@ -1423,18 +1423,44 @@ if not st.session_state.get("access_token"):
       padding:3.1rem 2.5rem 3.5rem!important;
       margin-top:clamp(1rem,6vh,4.5rem);
       border-radius:25px;
-      background:rgba(255,255,255,.92);
-      border:1px solid #D7C9FF;
-      box-shadow:0 20px 65px rgba(59,34,123,.16);
+      background:linear-gradient(155deg,rgba(231,222,255,.96) 0%,rgba(208,219,255,.95) 54%,rgba(226,215,255,.96) 100%)!important;
+      border:2px solid #A78BFA!important;
+      box-shadow:0 24px 72px rgba(27,16,87,.35),inset 0 1px 0 rgba(255,255,255,.65);
     }
     [data-testid="stMain"] .block-container h1 {
       font-size:clamp(1.7rem,3.4vw,2.45rem)!important;
       line-height:1.2!important;
     }
     [data-testid="stMain"] [data-testid="stForm"] {
-      border:1px solid #E5DDFB!important;
+      background:linear-gradient(145deg,#F2EDFF 0%,#E5E9FF 100%)!important;
+      border:1.5px solid #B5A3F6!important;
       padding:1.15rem!important;
-      box-shadow:0 6px 18px #6D28D90D;
+      box-shadow:0 9px 26px rgba(75,46,160,.13)!important;
+    }
+    [data-testid="stMain"] [data-testid="stForm"] label,
+    [data-testid="stMain"] [data-testid="stForm"] p {color:#312064!important;}
+    [data-testid="stMain"] input {
+      background:#FFFFFF!important;
+      border-radius:9px!important;
+      color:#211943!important;
+    }
+    [data-testid="stMain"] [data-testid="stFormSubmitButton"] button[kind="primary"] {
+      background:linear-gradient(110deg,#7C3AED,#2563EB)!important;
+      color:white!important;
+      min-width:150px;
+      border-radius:11px!important;
+      box-shadow:0 6px 16px rgba(86,58,189,.22);
+    }
+    [data-testid="stMain"] [data-testid="stExpander"] {
+      background:linear-gradient(100deg,#DDD6FE,#DBEAFE)!important;
+      border:1px solid #A78BFA!important;
+    }
+    [data-testid="stMain"] [data-testid="stExpander"] summary,
+    [data-testid="stMain"] [data-testid="stExpander"] summary * {
+      color:#312064!important;font-weight:650!important;
+    }
+    [data-testid="stMain"] [data-testid="stCaptionContainer"] {
+      color:#51457A!important;
     }
     @media(max-width:700px){
       [data-testid="stMain"] .block-container{
@@ -1513,7 +1539,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-12")
+    st.caption("Versão: purple-tech-20261023-13")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
