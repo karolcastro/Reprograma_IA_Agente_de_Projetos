@@ -1536,29 +1536,37 @@ pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", i
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 st.markdown("""
 <style>
-[data-testid="stHeader"] {background:rgba(248,245,255,.96)!important;}
-[data-testid="stMain"] .block-container {padding-top:1.2rem!important;}
-[data-testid="stNavigation"] {background:linear-gradient(100deg,#F1EAFE,#E8F0FF)!important;}
-[data-testid="stNavigation"] a[aria-current="page"] {
-  color:#5B21B6!important;border-bottom:3px solid #7C3AED!important;
-}
+[data-testid="stHeader"]{background:#302069!important}
+[data-testid="stNavigation"]{background:linear-gradient(100deg,#382078,#24448f)!important}
+[data-testid="stNavigation"] a{color:white!important}
+[data-testid="stNavigation"] a[aria-current="page"]{background:#6d40d8!important;border-radius:8px!important}
+[data-testid="stMain"] .block-container{max-width:1600px!important;padding-top:1rem!important}
+@media(max-width:800px){[data-testid="stMain"] .block-container{padding:1rem!important}}
 </style>
-""", unsafe_allow_html=True)
-cabecalho_esquerda, cabecalho_direita = st.columns([3, 2], vertical_alignment="center")
+""",unsafe_allow_html=True)
+cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([5,2,1],vertical_alignment="center")
 with cabecalho_esquerda:
     st.markdown("### 💜 ProjectFlow AI")
     st.caption("Gestão de projetos • Portfólio • Governança")
-with cabecalho_direita:
-    st.caption("👤 " + st.session_state.get("email_usuario", "") +
-               " · " + str(perfil[0].get("perfil_global", "usuário")))
-    if st.button("🚪 Sair", key="logout_button"):
+with cabecalho_usuario:
+    st.markdown("**👤 "+html.escape(str(perfil[0].get("nome") or "Usuário"))+"**")
+    st.caption(str(perfil[0].get("perfil_global","usuário")))
+with cabecalho_sair:
+    if st.button("🚪 Sair",key="logout_button",use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
 paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes, pagina_conta_usuario]
 if perfil[0].get("perfil_global") == "admin":
     paginas.extend([pagina_central, pagina_gestao, pagina_admin])
-navegacao = st.navigation(paginas, position="top")
+navegacao = st.navigation(paginas, position="hidden")
+st.caption("NAVEGAÇÃO • TODAS AS ÁREAS")
+for grupo_inicio in range(0,len(paginas),4):
+    grupo=paginas[grupo_inicio:grupo_inicio+4]
+    colunas=st.columns(len(grupo))
+    for coluna,pagina_item in zip(colunas,grupo):
+        with coluna:
+            st.page_link(pagina_item,label=pagina_item.title,icon=pagina_item.icon,use_container_width=True)
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
