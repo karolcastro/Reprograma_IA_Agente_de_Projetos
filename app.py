@@ -1410,6 +1410,41 @@ if not configurado():
     st.stop()
 
 if not st.session_state.get("access_token"):
+    st.markdown("""
+    <style>
+    [data-testid="stApp"] {
+      background:
+        radial-gradient(circle at 85% 15%,rgba(96,165,250,.42),transparent 32%),
+        radial-gradient(circle at 15% 78%,rgba(167,139,250,.48),transparent 40%),
+        linear-gradient(125deg,#F4EEFF 0%,#E9E8FF 45%,#DDEBFF 100%)!important;
+    }
+    [data-testid="stMain"] {background:transparent!important;}
+    [data-testid="stMain"] .block-container {
+      max-width:650px!important;
+      padding:3.1rem 2.5rem 3.5rem!important;
+      margin-top:clamp(1rem,6vh,4.5rem);
+      border-radius:25px;
+      background:rgba(255,255,255,.92);
+      border:1px solid #D7C9FF;
+      box-shadow:0 20px 65px rgba(59,34,123,.16);
+    }
+    [data-testid="stMain"] .block-container h1 {
+      font-size:clamp(1.7rem,3.4vw,2.45rem)!important;
+      line-height:1.2!important;
+    }
+    [data-testid="stMain"] [data-testid="stForm"] {
+      border:1px solid #E5DDFB!important;
+      padding:1.15rem!important;
+      box-shadow:0 6px 18px #6D28D90D;
+    }
+    @media(max-width:700px){
+      [data-testid="stMain"] .block-container{
+        margin-top:1rem;padding:1.4rem 1rem 2rem!important;border-radius:18px;
+      }
+    }
+    </style>
+    <div style="height:7px;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#4F46E5,#2563EB);margin-bottom:1.5rem"></div>
+    """, unsafe_allow_html=True)
     st.title("🔐 Gerenciamento de Projetos com IA")
     st.caption("Acesso individual · Entre com seu usuário do Supabase")
     with st.form("acesso_individual"):
@@ -1479,7 +1514,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-10")
+    st.caption("Versão: purple-tech-20261023-11")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
