@@ -99,6 +99,21 @@ div[data-testid="stExpander"] {background:linear-gradient(145deg,#FFFFFF,#F8F5FF
 .project-card {background:linear-gradient(145deg,#FFFFFF,#F7F4FF);box-shadow:0 9px 25px #6950B81C;}
 .project-card:hover {box-shadow:0 12px 30px #6950B82B;transform:translateY(-2px);transition:box-shadow .18s,transform .18s;}
 [data-testid="stDataFrame"] {box-shadow:0 5px 18px #6950B812;}
+
+/* ATLAS DESIGN SYSTEM — marfim, azul-marinho e dourado discreto */
+:root{--pf-blue:#0B6077;--pf-violet:#102A43;--pf-ink:#152B42;--pf-muted:#64748B;--pf-border:#DDE5ED}
+html,body,[data-testid="stApp"],[data-testid="stMain"]{background:#F7F9FC!important;color:#172B45!important}
+[data-testid="stApp"]{background:linear-gradient(150deg,#FCFDFE 0%,#F5F8FC 75%,#F9F7F2 100%)!important}
+.block-container h1,.block-container h2,.block-container h3{color:#142D4A!important}
+p,li,label,[data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"]{color:#243B53}
+[data-testid="stCaptionContainer"],small{color:#62758B!important}
+.project-card,div[data-testid="stMetric"],div[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stDataFrame"]{background:#FFFFFF!important;border:1px solid #E1E7EE!important;border-radius:13px!important;box-shadow:0 5px 20px rgba(18,45,75,.045)!important}
+.project-card h3,[data-testid="stMetricValue"]{color:#102F4D!important}
+div[data-testid="stButton"] button,div[data-testid="stFormSubmitButton"] button{background:#EDF3F8!important;border:1px solid #D4E0EA!important;color:#163A57!important}
+div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] button:hover{background:#DFEAF2!important;border-color:#9CB6C8!important;color:#102F4D!important}
+div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"]{background:#163A57!important;border-color:#163A57!important;color:white!important}
+div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover{background:#0B6077!important;color:white!important}
+[data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"]{border-color:#DCE5EC!important}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1467,10 +1482,18 @@ if not st.session_state.get("access_token"):
         margin-top:1rem;padding:1.4rem 1rem 2rem!important;border-radius:18px;
       }
     }
-    </style>
+    
+/* ATLAS login: mesma linguagem visual do produto */
+[data-testid="stApp"]{background:linear-gradient(110deg,rgba(13,39,65,.88),rgba(21,62,88,.72)),url("https://raw.githubusercontent.com/karolcastro/Reprograma_IA_Agente_de_Projetos/main/assets/login-projetos.svg") center/cover no-repeat fixed!important}
+[data-testid="stMain"] .block-container{background:linear-gradient(145deg,#FFFFFF 0%,#F4F8FB 100%)!important;border:1px solid #D8E3EC!important;border-top:5px solid #C9A66B!important;box-shadow:0 22px 65px rgba(8,31,53,.28)!important}
+[data-testid="stMain"] [data-testid="stForm"]{background:#FFFFFF!important;border:1px solid #DDE6ED!important;box-shadow:none!important}
+[data-testid="stMain"] [data-testid="stFormSubmitButton"] button[kind="primary"]{background:#163A57!important;border-color:#163A57!important}
+[data-testid="stMain"] [data-testid="stExpander"]{background:#F1F5F9!important;border-color:#DCE5EC!important}
+[data-testid="stMain"] [data-testid="stExpander"] summary,[data-testid="stMain"] [data-testid="stExpander"] summary *{color:#173A55!important}
+</style>
     <div style="height:7px;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#4F46E5,#2563EB);margin-bottom:1.5rem"></div>
     """, unsafe_allow_html=True)
-    st.markdown('<div style="font-size:clamp(2rem,4.5vw,3.1rem);font-weight:850;line-height:1.16;letter-spacing:-.04em;color:#3D247E;margin:.15rem 0 .5rem">ProjectFlow <span style="background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent">AI</span></div><div style="font-size:.76rem;letter-spacing:.11em;color:#62548C;margin-bottom:1rem">GERENCIAMENTO DE PROJETOS</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:clamp(2rem,4.5vw,3.1rem);font-weight:850;line-height:1.16;letter-spacing:-.04em;color:#102D4B;margin:.15rem 0 .5rem">ProjectFlow <span style="background:linear-gradient(95deg,#0B6077,#C39A52);-webkit-background-clip:text;background-clip:text;color:transparent">AI</span></div><div style="font-size:.76rem;letter-spacing:.11em;color:#62548C;margin-bottom:1rem">GERENCIAMENTO DE PROJETOS</div>', unsafe_allow_html=True)
     st.caption("Acesse sua conta para acompanhar projetos, equipes e entregas.")
     with st.form("acesso_individual"):
         email = st.text_input("E-mail").strip()
@@ -1572,6 +1595,19 @@ st.markdown("""
  .pf-user{font-size:.72rem}
  [data-testid="stPills"] button{font-size:.74rem!important}
 }
+
+/* ATLAS: cabeçalho coeso e menu horizontal */
+.pf-brand{color:#102D4B!important;font-size:clamp(1.9rem,3.1vw,2.55rem)!important;letter-spacing:-.045em!important}
+.pf-brand .pf-ai{background:linear-gradient(95deg,#0B6077,#C39A52)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+.pf-subtitle{color:#738398!important;letter-spacing:.13em!important}
+.pf-user{color:#173A55!important}
+.pf-role{color:#6B7E90!important}
+.st-key-pf_topbar{background:#FFFFFF!important;border:1px solid #E1E7EE!important;border-top:3px solid #C9A66B!important;border-radius:13px!important;padding:13px 18px 8px!important;box-shadow:0 5px 24px rgba(20,45,75,.055)!important}
+.st-key-pf_topbar [data-testid="stPills"] button{background:#FFFFFF!important;border:1px solid transparent!important;color:#324C63!important;font-size:.78rem!important;border-radius:8px!important;min-height:30px!important;padding:.24rem .56rem!important}
+.st-key-pf_topbar [data-testid="stPills"] button:hover{background:#F0F5F8!important;border-color:#E1E7EE!important}
+.st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"]{background:#E7F0F4!important;color:#0B6077!important;border-color:#B9D2DC!important}
+.st-key-logout_button button,.st-key-pf_topbar .st-key-logout_button button{background:#F5F7FA!important;border:1px solid #DCE5EC!important;color:#183B55!important;padding:.22rem .6rem!important;min-height:29px!important;height:29px!important}
+@media(max-width:800px){.st-key-pf_topbar{padding:10px!important}.pf-brand{font-size:1.5rem!important}.st-key-pf_topbar [data-testid="stPills"] button{font-size:.73rem!important}}
 </style>
 """,unsafe_allow_html=True)
 with st.container(key="pf_topbar"):
