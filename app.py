@@ -114,6 +114,18 @@ div[data-testid="stButton"] button:hover,div[data-testid="stFormSubmitButton"] b
 div[data-testid="stButton"] button[kind="primary"],div[data-testid="stFormSubmitButton"] button[kind="primary"]{background:#163A57!important;border-color:#163A57!important;color:white!important}
 div[data-testid="stButton"] button[kind="primary"]:hover,div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover{background:#0B6077!important;color:white!important}
 [data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"]{border-color:#DCE5EC!important}
+
+/* ATLAS: delimitação de seções executivas */
+[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"]{gap:.65rem!important}
+[data-testid="stVerticalBlockBorderWrapper"]{
+  background:#FFFFFF!important;
+  border:1px solid #DFE7EE!important;
+  border-left:3px solid #B69A69!important;
+  border-radius:15px!important;
+  box-shadow:0 7px 24px rgba(19,47,72,.07)!important;
+  margin:.7rem 0 1.2rem!important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] h3{margin-top:.15rem!important}
 </style>
 """, unsafe_allow_html=True)
 
@@ -257,192 +269,198 @@ def formatar_data(valor):
 def pagina_dashboard():
     st.title("Visão executiva")
     st.markdown('<p class="subtitle">Portfólio de projetos • Indicadores e entregas</p>', unsafe_allow_html=True)
-    filtro = st.selectbox("Situação", ["Todos", "Em dia", "Atenção", "Atrasado"])
-    total = len(projetos)
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Projetos", total)
-    k2.metric("Em dia", sum(p["farol"] == "verde" for p in projetos))
-    k3.metric("Em atenção", sum(p["farol"] == "amarelo" for p in projetos))
-    k4.metric("Atrasados", sum(p["farol"] == "vermelho" for p in projetos))
+    with st.container(border=True):
+        filtro = st.selectbox("Situação", ["Todos", "Em dia", "Atenção", "Atrasado"])
+        total = len(projetos)
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Projetos", total)
+        k2.metric("Em dia", sum(p["farol"] == "verde" for p in projetos))
+        k3.metric("Em atenção", sum(p["farol"] == "amarelo" for p in projetos))
+        k4.metric("Atrasados", sum(p["farol"] == "vermelho" for p in projetos))
 
-    st.subheader("📋 Acompanhamento de tarefas")
-    st.caption("Indicadores e prioridades atualizados a partir das pendências que você tem permissão para consultar.")
-    try:
-        tarefas = consultar("pendencias",
-            "id,projeto_id,descricao,responsavel,prazo,status,prioridade,progresso")
-    except (requests.RequestException, PermissionError):
-        st.warning("Não foi possível carregar as tarefas. Tente atualizar a página.")
-        tarefas = None
-    if tarefas is not None:
-        hoje = date.today()
-        tarefas_ativas = [t for t in tarefas if t.get("status") != "concluida"]
-        vencidas = [t for t in tarefas_ativas if t.get("prazo") and
-                    date.fromisoformat(str(t["prazo"])) < hoje]
-        proximas = [t for t in tarefas_ativas if t.get("prazo") and
-                    hoje <= date.fromisoformat(str(t["prazo"])) <=
-                    date.fromordinal(hoje.toordinal() + 7)]
-        bloqueadas = [t for t in tarefas_ativas if t.get("status") == "bloqueada"]
-        concluidas = [t for t in tarefas if t.get("status") == "concluida"]
-        indicadores = st.columns(5)
-        for coluna, titulo, valor in zip(indicadores,
-            ["Tarefas", "Atrasadas", "Bloqueadas", "Concluídas", "Próximos 7 dias"],
-            [len(tarefas), len(vencidas), len(bloqueadas), len(concluidas), len(proximas)]):
-            coluna.metric(titulo, valor)
-        st.caption("Atrasadas = não concluídas com prazo vencido. Próximos 7 dias = não concluídas com vencimento entre hoje e sete dias.")
-        nomes_projetos = {p["id"]: p["nome"] for p in projetos}
-        rotulos_prioridade = {"baixa": "🟢 Baixa", "media": "🟡 Média",
-                             "alta": "🟠 Alta", "critica": "🔴 Crítica"}
-        rotulos_status = {"aberta": "Não iniciada", "em_andamento": "Em andamento",
-                          "bloqueada": "Bloqueada", "concluida": "Concluída"}
-        opcoes_projetos = ["Todos"] + sorted(set(nomes_projetos.values()))
-        col_filtro_projeto, col_filtro_prioridade, col_filtro_status = st.columns(3)
-        with col_filtro_projeto:
-            filtro_projeto_t = st.selectbox("Projeto das tarefas", opcoes_projetos, key="filtro_tarefas_projeto")
-        with col_filtro_prioridade:
-            filtro_prioridade_t = st.selectbox("Prioridade", ["Todas", "Crítica", "Alta", "Média", "Baixa"], key="filtro_tarefas_prioridade")
-        with col_filtro_status:
-            filtro_status_t = st.selectbox("Status", ["Todos", "Não iniciada", "Em andamento", "Bloqueada", "Concluída"], key="filtro_tarefas_status")
-        linhas_tarefas = []
-        for t in tarefas:
-            prioridade = rotulos_prioridade.get(t.get("prioridade"), "🟡 Média")
-            situacao_t = rotulos_status.get(t.get("status"), str(t.get("status") or "Não definida"))
-            nome_projeto = nomes_projetos.get(t["projeto_id"], "Projeto indisponível")
-            if filtro_projeto_t != "Todos" and nome_projeto != filtro_projeto_t:
-                continue
-            if filtro_prioridade_t != "Todas" and not prioridade.endswith(filtro_prioridade_t):
-                continue
-            if filtro_status_t != "Todos" and situacao_t != filtro_status_t:
-                continue
-            linhas_tarefas.append({
-                "Projeto": nome_projeto,
-                "Tarefa": t.get("descricao") or "",
-                "Responsável": t.get("responsavel") or "Não definido",
-                "Prioridade": prioridade,
-                "Status": situacao_t,
-                "Progresso (%)": int(t.get("progresso") or 0),
-                "Prazo": str(t.get("prazo") or "Não definido"),
-            })
-        if linhas_tarefas:
-            st.dataframe(pd.DataFrame(linhas_tarefas), hide_index=True, use_container_width=True,
-                column_config={"Progresso (%)": st.column_config.ProgressColumn(
-                    "Progresso (%)", min_value=0, max_value=100, format="%d%%")})
-        else:
-            st.info("Nenhuma tarefa encontrada para os filtros selecionados.")
-        st.caption("Legenda de prioridades: 🔴 Crítica · 🟠 Alta · 🟡 Média · 🟢 Baixa. Os indicadores gerais respeitam os acessos do usuário.")
-
-    st.subheader("Resumo para tomada de decisão")
-    st.caption("Três perguntas para entender o portfólio rapidamente. "
-               "Indicadores calculados com os dados atuais dos projetos.")
-    atrasados = [p for p in projetos if p["farol"] == "vermelho"]
-    atencao = [p for p in projetos if p["farol"] == "amarelo"]
-    em_dia = [p for p in projetos if p["farol"] == "verde"]
-    criticos = sorted(atrasados + atencao, key=lambda p: (p["farol"] != "vermelho", p["prazo"]))
-    proxima_entrega = min(projetos, key=lambda p: p["prazo"]) if projetos else None
-    cor_fundo = "#fff0f0" if atrasados else ("#fff7e5" if atencao else "#eaf8f0")
-    situacao_resumo = (
-        f"{len(atrasados)} projeto(s) atrasado(s)" if atrasados
-        else f"{len(atencao)} projeto(s) em atenção" if atencao
-        else "Todos os projetos em dia"
-    )
-    col_estado, col_alerta, col_acao = st.columns(3, gap="medium")
-    with col_estado:
-        st.markdown("#### 📍 Onde estamos?")
-        st.markdown(
-            '<div style="background:' + cor_fundo +
-            ';border-radius:12px;padding:16px;min-height:115px;">' +
-            '<strong>' + html.escape(situacao_resumo) + '</strong><br>' +
-            '<span style="color:#475569">' + str(len(em_dia)) +
-            ' em dia de ' + str(total) + ' projeto(s)</span></div>',
-            unsafe_allow_html=True,
-        )
-    with col_alerta:
-        st.markdown("#### ⚠️ O que exige atenção?")
-        if criticos:
-            for p in criticos[:3]:
-                st.markdown("🔴 " if p["farol"] == "vermelho" else "🟡 ", unsafe_allow_html=False)
-                st.write(p["nome"] + " · entrega " + formatar_data(p["prazo"]))
-            if len(criticos) > 3:
-                st.caption("E mais " + str(len(criticos) - 3) + " projeto(s) no portfólio.")
-        else:
-            st.success("Nenhum projeto em alerta pelo indicador atual.")
-    with col_acao:
-        st.markdown("#### 🎯 Qual o próximo passo?")
-        if criticos:
-            prioridade = criticos[0]
-            st.write("**Revisar o projeto prioritário:** " + prioridade["nome"])
-            st.caption("Prioridade sugerida pelo farol e prazo. Confirme com o responsável.")
-            if st.button("Abrir projeto prioritário →", key="prioridade_executiva",
-                         use_container_width=True):
-                st.session_state["projeto_id"] = prioridade["id"]
-                st.switch_page(pagina_detalhe)
-        elif proxima_entrega:
-            st.write("**Acompanhar a próxima entrega:** " + proxima_entrega["nome"])
-            st.caption("Prazo: " + formatar_data(proxima_entrega["prazo"]))
-        else:
-            st.info("Cadastre projetos para receber orientações.")
-    st.caption("**Legenda:** 🟢 Em dia · 🟡 Atenção · 🔴 Atrasado. "
-               "A recomendação é baseada em regras, não em análise por IA.")
-
-    st.subheader("Projetos")
-    filtrados = [p for p in projetos if filtro == "Todos" or ROTULOS[p["farol"]] == filtro]
-    if not filtrados:
-        st.info("Nenhum projeto para este filtro.")
-    for i in range(0, len(filtrados), 2):
-        colunas = st.columns(2, gap="large")
-        for coluna, p in zip(colunas, filtrados[i:i + 2]):
-            with coluna:
-                situacao = p["farol"]
-                nome = html.escape(str(p["nome"]))
-                responsavel = html.escape(str(p.get("responsavel") or "Não definido"))
-                st.markdown(
-                    f'<div class="project-card" style="border-top: 5px solid {CORES[situacao]}">'
-                    f'<span class="pill {CLASSES_FAROL[situacao]}">'
-                    f'{ROTULOS[situacao]}</span><h3>{nome}</h3>'
-                    f'<p>Responsável: {responsavel}</p>'
-                    f'<p>Entrega: {formatar_data(p["prazo"])} · Pendências: {p["pendencias"]}</p>'
-                    f'</div>', unsafe_allow_html=True
-                )
-                if st.button("Ver detalhes →", key=f"abrir_{p['id']}", use_container_width=True):
-                    st.session_state["projeto_id"] = p["id"]
-                    st.switch_page(pagina_detalhe)
-
-    st.subheader("Cronograma de entregas")
-    if projetos:
-        linhas = []
-        for p in projetos:
-            if p.get("inicio") and p.get("prazo"):
-                linhas.append({
-                    "Projeto": p["nome"],
-                    "Início": pd.to_datetime(p["inicio"]),
-                    "Prazo": pd.to_datetime(p["prazo"]),
-                    "Situação": ROTULOS[p["farol"]],
+    with st.container(border=True):
+        st.subheader("📋 Acompanhamento de tarefas")
+        st.caption("Indicadores e prioridades atualizados a partir das pendências que você tem permissão para consultar.")
+        try:
+            tarefas = consultar("pendencias",
+                "id,projeto_id,descricao,responsavel,prazo,status,prioridade,progresso")
+        except (requests.RequestException, PermissionError):
+            st.warning("Não foi possível carregar as tarefas. Tente atualizar a página.")
+            tarefas = None
+        if tarefas is not None:
+            hoje = date.today()
+            tarefas_ativas = [t for t in tarefas if t.get("status") != "concluida"]
+            vencidas = [t for t in tarefas_ativas if t.get("prazo") and
+                        date.fromisoformat(str(t["prazo"])) < hoje]
+            proximas = [t for t in tarefas_ativas if t.get("prazo") and
+                        hoje <= date.fromisoformat(str(t["prazo"])) <=
+                        date.fromordinal(hoje.toordinal() + 7)]
+            bloqueadas = [t for t in tarefas_ativas if t.get("status") == "bloqueada"]
+            concluidas = [t for t in tarefas if t.get("status") == "concluida"]
+            indicadores = st.columns(5)
+            for coluna, titulo, valor in zip(indicadores,
+                ["Tarefas", "Atrasadas", "Bloqueadas", "Concluídas", "Próximos 7 dias"],
+                [len(tarefas), len(vencidas), len(bloqueadas), len(concluidas), len(proximas)]):
+                coluna.metric(titulo, valor)
+            st.caption("Atrasadas = não concluídas com prazo vencido. Próximos 7 dias = não concluídas com vencimento entre hoje e sete dias.")
+            nomes_projetos = {p["id"]: p["nome"] for p in projetos}
+            rotulos_prioridade = {"baixa": "🟢 Baixa", "media": "🟡 Média",
+                                 "alta": "🟠 Alta", "critica": "🔴 Crítica"}
+            rotulos_status = {"aberta": "Não iniciada", "em_andamento": "Em andamento",
+                              "bloqueada": "Bloqueada", "concluida": "Concluída"}
+            opcoes_projetos = ["Todos"] + sorted(set(nomes_projetos.values()))
+            col_filtro_projeto, col_filtro_prioridade, col_filtro_status = st.columns(3)
+            with col_filtro_projeto:
+                filtro_projeto_t = st.selectbox("Projeto das tarefas", opcoes_projetos, key="filtro_tarefas_projeto")
+            with col_filtro_prioridade:
+                filtro_prioridade_t = st.selectbox("Prioridade", ["Todas", "Crítica", "Alta", "Média", "Baixa"], key="filtro_tarefas_prioridade")
+            with col_filtro_status:
+                filtro_status_t = st.selectbox("Status", ["Todos", "Não iniciada", "Em andamento", "Bloqueada", "Concluída"], key="filtro_tarefas_status")
+            linhas_tarefas = []
+            for t in tarefas:
+                prioridade = rotulos_prioridade.get(t.get("prioridade"), "🟡 Média")
+                situacao_t = rotulos_status.get(t.get("status"), str(t.get("status") or "Não definida"))
+                nome_projeto = nomes_projetos.get(t["projeto_id"], "Projeto indisponível")
+                if filtro_projeto_t != "Todos" and nome_projeto != filtro_projeto_t:
+                    continue
+                if filtro_prioridade_t != "Todas" and not prioridade.endswith(filtro_prioridade_t):
+                    continue
+                if filtro_status_t != "Todos" and situacao_t != filtro_status_t:
+                    continue
+                linhas_tarefas.append({
+                    "Projeto": nome_projeto,
+                    "Tarefa": t.get("descricao") or "",
+                    "Responsável": t.get("responsavel") or "Não definido",
+                    "Prioridade": prioridade,
+                    "Status": situacao_t,
+                    "Progresso (%)": int(t.get("progresso") or 0),
+                    "Prazo": str(t.get("prazo") or "Não definido"),
                 })
-        if linhas:
-            df = pd.DataFrame(linhas)
-            barras = alt.Chart(df).mark_bar(cornerRadius=5, size=20).encode(
-                y=alt.Y("Projeto:N", sort=None, title=None),
-                x=alt.X("Início:T", title="Calendário"),
-                x2="Prazo:T",
-                color=alt.Color("Situação:N", scale=alt.Scale(
-                    domain=["Em dia", "Atenção", "Atrasado"],
-                    range=[CORES["verde"], CORES["amarelo"], CORES["vermelho"]]
-                ), legend=alt.Legend(orient="bottom")),
-                tooltip=["Projeto:N", "Início:T", "Prazo:T", "Situação:N"],
-            )
-            hoje = alt.Chart(pd.DataFrame({"hoje": [pd.Timestamp(date.today())]})).mark_rule(
-                color="#26344c", strokeDash=[5, 4], strokeWidth=2
-            ).encode(x="hoje:T")
-            st.altair_chart((barras + hoje).properties(height=max(180, len(df) * 52)),
-                            use_container_width=True)
-            st.caption("Cada barra representa o período planejado. A linha tracejada marca a data de hoje.")
+            if linhas_tarefas:
+                st.dataframe(pd.DataFrame(linhas_tarefas), hide_index=True, use_container_width=True,
+                    column_config={"Progresso (%)": st.column_config.ProgressColumn(
+                        "Progresso (%)", min_value=0, max_value=100, format="%d%%")})
+            else:
+                st.info("Nenhuma tarefa encontrada para os filtros selecionados.")
+            st.caption("Legenda de prioridades: 🔴 Crítica · 🟠 Alta · 🟡 Média · 🟢 Baixa. Os indicadores gerais respeitam os acessos do usuário.")
 
-    st.subheader("Próximos deadlines")
-    for p in sorted(projetos, key=lambda item: item["prazo"]):
-        dias = dias_restantes(p)
-        texto = f"Vencido há {abs(dias)} dia(s)" if dias < 0 else (
-            "Vence hoje" if dias == 0 else f"Faltam {dias} dia(s)"
+    with st.container(border=True):
+        st.subheader("Resumo para tomada de decisão")
+        st.caption("Três perguntas para entender o portfólio rapidamente. "
+                   "Indicadores calculados com os dados atuais dos projetos.")
+        atrasados = [p for p in projetos if p["farol"] == "vermelho"]
+        atencao = [p for p in projetos if p["farol"] == "amarelo"]
+        em_dia = [p for p in projetos if p["farol"] == "verde"]
+        criticos = sorted(atrasados + atencao, key=lambda p: (p["farol"] != "vermelho", p["prazo"]))
+        proxima_entrega = min(projetos, key=lambda p: p["prazo"]) if projetos else None
+        cor_fundo = "#fff0f0" if atrasados else ("#fff7e5" if atencao else "#eaf8f0")
+        situacao_resumo = (
+            f"{len(atrasados)} projeto(s) atrasado(s)" if atrasados
+            else f"{len(atencao)} projeto(s) em atenção" if atencao
+            else "Todos os projetos em dia"
         )
-        st.markdown(f"**{html.escape(str(p['nome']))}** — {formatar_data(p['prazo'])} · {texto}")
+        col_estado, col_alerta, col_acao = st.columns(3, gap="medium")
+        with col_estado:
+            st.markdown("#### 📍 Onde estamos?")
+            st.markdown(
+                '<div style="background:' + cor_fundo +
+                ';border-radius:12px;padding:16px;min-height:115px;">' +
+                '<strong>' + html.escape(situacao_resumo) + '</strong><br>' +
+                '<span style="color:#475569">' + str(len(em_dia)) +
+                ' em dia de ' + str(total) + ' projeto(s)</span></div>',
+                unsafe_allow_html=True,
+            )
+        with col_alerta:
+            st.markdown("#### ⚠️ O que exige atenção?")
+            if criticos:
+                for p in criticos[:3]:
+                    st.markdown("🔴 " if p["farol"] == "vermelho" else "🟡 ", unsafe_allow_html=False)
+                    st.write(p["nome"] + " · entrega " + formatar_data(p["prazo"]))
+                if len(criticos) > 3:
+                    st.caption("E mais " + str(len(criticos) - 3) + " projeto(s) no portfólio.")
+            else:
+                st.success("Nenhum projeto em alerta pelo indicador atual.")
+        with col_acao:
+            st.markdown("#### 🎯 Qual o próximo passo?")
+            if criticos:
+                prioridade = criticos[0]
+                st.write("**Revisar o projeto prioritário:** " + prioridade["nome"])
+                st.caption("Prioridade sugerida pelo farol e prazo. Confirme com o responsável.")
+                if st.button("Abrir projeto prioritário →", key="prioridade_executiva",
+                             use_container_width=True):
+                    st.session_state["projeto_id"] = prioridade["id"]
+                    st.switch_page(pagina_detalhe)
+            elif proxima_entrega:
+                st.write("**Acompanhar a próxima entrega:** " + proxima_entrega["nome"])
+                st.caption("Prazo: " + formatar_data(proxima_entrega["prazo"]))
+            else:
+                st.info("Cadastre projetos para receber orientações.")
+        st.caption("**Legenda:** 🟢 Em dia · 🟡 Atenção · 🔴 Atrasado. "
+                   "A recomendação é baseada em regras, não em análise por IA.")
+
+    with st.container(border=True):
+        st.subheader("Projetos")
+        filtrados = [p for p in projetos if filtro == "Todos" or ROTULOS[p["farol"]] == filtro]
+        if not filtrados:
+            st.info("Nenhum projeto para este filtro.")
+        for i in range(0, len(filtrados), 2):
+            colunas = st.columns(2, gap="large")
+            for coluna, p in zip(colunas, filtrados[i:i + 2]):
+                with coluna:
+                    situacao = p["farol"]
+                    nome = html.escape(str(p["nome"]))
+                    responsavel = html.escape(str(p.get("responsavel") or "Não definido"))
+                    st.markdown(
+                        f'<div class="project-card" style="border-top: 5px solid {CORES[situacao]}">'
+                        f'<span class="pill {CLASSES_FAROL[situacao]}">'
+                        f'{ROTULOS[situacao]}</span><h3>{nome}</h3>'
+                        f'<p>Responsável: {responsavel}</p>'
+                        f'<p>Entrega: {formatar_data(p["prazo"])} · Pendências: {p["pendencias"]}</p>'
+                        f'</div>', unsafe_allow_html=True
+                    )
+                    if st.button("Ver detalhes →", key=f"abrir_{p['id']}", use_container_width=True):
+                        st.session_state["projeto_id"] = p["id"]
+                        st.switch_page(pagina_detalhe)
+
+    with st.container(border=True):
+        st.subheader("Cronograma de entregas")
+        if projetos:
+            linhas = []
+            for p in projetos:
+                if p.get("inicio") and p.get("prazo"):
+                    linhas.append({
+                        "Projeto": p["nome"],
+                        "Início": pd.to_datetime(p["inicio"]),
+                        "Prazo": pd.to_datetime(p["prazo"]),
+                        "Situação": ROTULOS[p["farol"]],
+                    })
+            if linhas:
+                df = pd.DataFrame(linhas)
+                barras = alt.Chart(df).mark_bar(cornerRadius=5, size=20).encode(
+                    y=alt.Y("Projeto:N", sort=None, title=None),
+                    x=alt.X("Início:T", title="Calendário"),
+                    x2="Prazo:T",
+                    color=alt.Color("Situação:N", scale=alt.Scale(
+                        domain=["Em dia", "Atenção", "Atrasado"],
+                        range=[CORES["verde"], CORES["amarelo"], CORES["vermelho"]]
+                    ), legend=alt.Legend(orient="bottom")),
+                    tooltip=["Projeto:N", "Início:T", "Prazo:T", "Situação:N"],
+                )
+                hoje = alt.Chart(pd.DataFrame({"hoje": [pd.Timestamp(date.today())]})).mark_rule(
+                    color="#26344c", strokeDash=[5, 4], strokeWidth=2
+                ).encode(x="hoje:T")
+                st.altair_chart((barras + hoje).properties(height=max(180, len(df) * 52)),
+                                use_container_width=True)
+                st.caption("Cada barra representa o período planejado. A linha tracejada marca a data de hoje.")
+
+    with st.container(border=True):
+        st.subheader("Próximos deadlines")
+        for p in sorted(projetos, key=lambda item: item["prazo"]):
+            dias = dias_restantes(p)
+            texto = f"Vencido há {abs(dias)} dia(s)" if dias < 0 else (
+                "Vence hoje" if dias == 0 else f"Faltam {dias} dia(s)"
+            )
+            st.markdown(f"**{html.escape(str(p['nome']))}** — {formatar_data(p['prazo'])} · {texto}")
 
 def pagina_detalhes():
     pid = st.session_state.get("projeto_id")
