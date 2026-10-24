@@ -1470,7 +1470,7 @@ if not st.session_state.get("access_token"):
     </style>
     <div style="height:7px;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#4F46E5,#2563EB);margin-bottom:1.5rem"></div>
     """, unsafe_allow_html=True)
-    st.markdown('<div style="font-size:clamp(2rem,4.5vw,3.1rem);font-weight:850;line-height:1.16;letter-spacing:-.04em;color:#3D247E;margin:.15rem 0 .5rem">💜 ProjectFlow <span style="background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent">AI</span></div><div style="font-size:.76rem;letter-spacing:.11em;color:#62548C;margin-bottom:1rem">GERENCIAMENTO DE PROJETOS</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:clamp(2rem,4.5vw,3.1rem);font-weight:850;line-height:1.16;letter-spacing:-.04em;color:#3D247E;margin:.15rem 0 .5rem">ProjectFlow <span style="background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent">AI</span></div><div style="font-size:.76rem;letter-spacing:.11em;color:#62548C;margin-bottom:1rem">GERENCIAMENTO DE PROJETOS</div>', unsafe_allow_html=True)
     st.caption("Acesse sua conta para acompanhar projetos, equipes e entregas.")
     with st.form("acesso_individual"):
         email = st.text_input("E-mail").strip()
@@ -1577,7 +1577,7 @@ st.markdown("""
 with st.container(key="pf_topbar"):
     cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([6.8,2.2,0.65],vertical_alignment="center",gap="small")
     with cabecalho_esquerda:
-        st.markdown('<div class="pf-brand">💜 ProjectFlow <span class="pf-ai">AI</span></div><div class="pf-subtitle">GERENCIAMENTO DE PROJETOS</div>',unsafe_allow_html=True)
+        st.markdown('<div class="pf-brand">ProjectFlow <span class="pf-ai">AI</span></div><div class="pf-subtitle">GERENCIAMENTO DE PROJETOS</div>',unsafe_allow_html=True)
     with cabecalho_usuario:
         st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
     with cabecalho_sair:
