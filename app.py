@@ -1536,58 +1536,51 @@ pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", i
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 st.markdown("""
 <style>
-[data-testid="stHeader"] {background:#F7F5FF!important;}
-[data-testid="stMain"] .block-container {max-width:1380px!important;width:100%!important;padding:4.25rem clamp(1rem,3vw,2rem) 2rem!important;box-sizing:border-box!important;}
-[data-testid="stMain"] [data-testid="stPageLink"] a {
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  padding:.15rem .35rem!important;min-height:27px!important;max-height:32px!important;
-  font-size:.76rem!important;font-weight:500!important;
-  border:1px solid #E2D9FA!important;border-radius:7px!important;
-  background:linear-gradient(110deg,#F1EAFF,#E8F0FF)!important;
-  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+[data-testid="stMain"] .block-container {
+  max-width:1380px!important;
+  padding:3rem clamp(1rem,3vw,2rem) 2rem!important;
 }
-[data-testid="stMain"] [data-testid="stPageLink"] a:hover {
-  background:linear-gradient(110deg,#DCCBFF,#D7E6FF)!important;
-  border-color:#9F7AEA!important;
+.pf-brand{font-size:1.17rem;font-weight:800;color:#5630A6;line-height:1.3}
+.pf-subtitle{font-size:.72rem;color:#746795}
+.pf-user{text-align:right;font-weight:700;color:#34206E;font-size:.83rem}
+.pf-role{text-align:right;color:#77689D;font-size:.7rem}
+[data-testid="stPills"]{margin-top:-.4rem!important;margin-bottom:-.6rem!important}
+[data-testid="stPills"] button{
+  font-size:.79rem!important;padding:.28rem .62rem!important;
+  border-radius:9px!important;min-height:32px!important;
 }
-[data-testid="stMain"] [data-testid="stPageLink"] a span,
-[data-testid="stMain"] [data-testid="stPageLink"] a svg {
-  font-size:.76rem!important;
+[data-testid="stPills"] button[aria-pressed="true"]{
+  background:#E1D6FF!important;color:#402080!important;
 }
-.pf-brand {font-size:1.25rem;font-weight:800;color:#5630A6;line-height:1.3;}
-.pf-subtitle {font-size:.73rem;color:#746795;margin-top:2px;}
-.pf-user {text-align:right;white-space:nowrap;font-weight:700;color:#34206E;font-size:.85rem;}
-.pf-role {text-align:right;color:#77689D;font-size:.7rem;}
-@media(max-width:900px) {
- [data-testid="stMain"] .block-container {padding:4.5rem .85rem 2rem!important;}
- [data-testid="stMain"] [data-testid="stPageLink"] a {font-size:.7rem!important;white-space:normal!important;}
- .pf-brand {font-size:1.05rem;}
- .pf-user {font-size:.75rem;white-space:normal;}
+@media(max-width:800px){
+ [data-testid="stMain"] .block-container{padding:3.3rem .8rem 2rem!important}
+ .pf-brand{font-size:1rem}
+ .pf-user{font-size:.72rem}
+ [data-testid="stPills"] button{font-size:.74rem!important}
 }
 </style>
 """,unsafe_allow_html=True)
-cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([5,2.8,1.2],vertical_alignment="center",gap="small")
+cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([5,2.6,1.1],vertical_alignment="center",gap="small")
 with cabecalho_esquerda:
-    st.markdown('<div class="pf-brand">💜 ProjectFlow AI</div><div class="pf-subtitle">Gestão de projetos · Portfólio · Governança</div>',unsafe_allow_html=True)
+    st.markdown('<div class="pf-brand">💜 ProjectFlow AI</div><div class="pf-subtitle">Projetos · Portfólio · Governança</div>',unsafe_allow_html=True)
 with cabecalho_usuario:
     st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
 with cabecalho_sair:
-    if st.button("Sair ↗",key="logout_button",use_container_width=True):
+    if st.button("Sair",key="logout_button",use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
-paginas = [pagina_principal,pagina_detalhe,pagina_atas,pagina_equipes,pagina_conta_usuario]
-if perfil[0].get("perfil_global") == "admin":
+paginas=[pagina_principal,pagina_detalhe,pagina_atas,pagina_equipes,pagina_conta_usuario]
+if perfil[0].get("perfil_global")=="admin":
     paginas.extend([pagina_central,pagina_gestao,pagina_admin])
-navegacao = st.navigation(paginas,position="hidden")
-st.markdown('<div style="height:1px;background:#DDD6FE;margin:.45rem 0 .6rem"></div>',unsafe_allow_html=True)
-rotulos_menu = {"Visão executiva":"Visão executiva","Detalhes do projeto":"Projetos","Análise de atas":"Análise de atas","Squads e acessos":"Equipes e acessos","Minha conta":"Minha conta","Central de aprovações":"Aprovações","Gerenciar projetos":"Gerenciar projetos","Administração":"Administração"}
-for inicio in range(0,len(paginas),4):
-    grupo=paginas[inicio:inicio+4]
-    colunas_menu=st.columns([1,1,1,1,0.6],gap="small")
-    for coluna,pagina_item in zip(colunas_menu,grupo):
-        with coluna:
-            st.page_link(pagina_item,label=rotulos_menu.get(pagina_item.title,pagina_item.title),icon=pagina_item.icon,use_container_width=True)
+navegacao=st.navigation(paginas,position="hidden")
+rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Squads e acessos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Administração":"🛡️ Admin"}
+opcoes_menu=[rotulos_menu.get(p.title,p.title) for p in paginas]
+destinos_menu=dict(zip(opcoes_menu,paginas))
+selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
+if selecao_menu:
+    st.session_state["menu_compacto"]=None
+    st.switch_page(destinos_menu[selecao_menu])
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
