@@ -1414,9 +1414,8 @@ if not st.session_state.get("access_token"):
     <style>
     [data-testid="stApp"] {
       background:
-        radial-gradient(circle at 85% 15%,rgba(96,165,250,.42),transparent 32%),
-        radial-gradient(circle at 15% 78%,rgba(167,139,250,.48),transparent 40%),
-        linear-gradient(125deg,#F4EEFF 0%,#E9E8FF 45%,#DDEBFF 100%)!important;
+        linear-gradient(90deg,rgba(26,13,73,.76) 0%,rgba(33,25,89,.56) 50%,rgba(28,41,113,.32) 100%),
+        url("https://raw.githubusercontent.com/karolcastro/Reprograma_IA_Agente_de_Projetos/main/assets/login-projetos.svg") center center / cover no-repeat fixed!important;
     }
     [data-testid="stMain"] {background:transparent!important;}
     [data-testid="stMain"] .block-container {
@@ -1514,7 +1513,7 @@ with st.sidebar:
     st.caption("PROJECT PORTFOLIO")
     st.caption("Conectado: " + st.session_state.get("email_usuario", ""))
     st.caption("Perfil: " + str(perfil[0].get("perfil_global", "não identificado")))
-    st.caption("Versão: purple-tech-20261023-11")
+    st.caption("Versão: purple-tech-20261023-12")
     if st.button("🚪 Sair", key="logout_button", use_container_width=True):
         st.session_state.clear()
         st.rerun()
