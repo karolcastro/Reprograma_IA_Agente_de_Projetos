@@ -1536,37 +1536,55 @@ pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", i
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 st.markdown("""
 <style>
-[data-testid="stHeader"]{background:#302069!important}
-[data-testid="stNavigation"]{background:linear-gradient(100deg,#382078,#24448f)!important}
-[data-testid="stNavigation"] a{color:white!important}
-[data-testid="stNavigation"] a[aria-current="page"]{background:#6d40d8!important;border-radius:8px!important}
-[data-testid="stMain"] .block-container{max-width:1600px!important;padding-top:1rem!important}
-@media(max-width:800px){[data-testid="stMain"] .block-container{padding:1rem!important}}
+[data-testid="stHeader"] {background:#F7F5FF!important;}
+[data-testid="stMain"] .block-container {max-width:100%!important;padding:0.8rem 1.4rem 2rem!important;}
+[data-testid="stMain"] [data-testid="stPageLink"] a {
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:.38rem .42rem!important;min-height:34px!important;
+  font-size:.77rem!important;font-weight:600!important;
+  border:1px solid #D9CDFB!important;border-radius:9px!important;
+  background:linear-gradient(110deg,#F1EAFF,#E8F0FF)!important;
+  white-space:nowrap!important;
+}
+[data-testid="stMain"] [data-testid="stPageLink"] a:hover {
+  background:linear-gradient(110deg,#DCCBFF,#D7E6FF)!important;
+  border-color:#9F7AEA!important;
+}
+[data-testid="stMain"] [data-testid="stPageLink"] a span,
+[data-testid="stMain"] [data-testid="stPageLink"] a svg {
+  font-size:.9rem!important;width:1rem!important;height:1rem!important;
+}
+.pf-brand {font-size:1.25rem;font-weight:800;color:#5630A6;line-height:1.3;}
+.pf-subtitle {font-size:.73rem;color:#746795;margin-top:2px;}
+.pf-user {text-align:right;white-space:nowrap;font-weight:700;color:#34206E;font-size:.85rem;}
+.pf-role {text-align:right;color:#77689D;font-size:.7rem;}
+@media(max-width:900px) {
+ [data-testid="stMain"] .block-container {padding:.7rem .65rem 2rem!important;}
+ [data-testid="stMain"] [data-testid="stPageLink"] a {font-size:.7rem!important;white-space:normal!important;}
+ .pf-brand {font-size:1.05rem;}
+ .pf-user {font-size:.75rem;white-space:normal;}
+}
 </style>
 """,unsafe_allow_html=True)
-cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([5,2,1],vertical_alignment="center")
+cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([7,2.3,1],vertical_alignment="center",gap="small")
 with cabecalho_esquerda:
-    st.markdown("### 💜 ProjectFlow AI")
-    st.caption("Gestão de projetos • Portfólio • Governança")
+    st.markdown('<div class="pf-brand">💜 ProjectFlow AI</div><div class="pf-subtitle">Gestão de projetos · Portfólio · Governança</div>',unsafe_allow_html=True)
 with cabecalho_usuario:
-    st.markdown("**👤 "+html.escape(str(perfil[0].get("nome") or "Usuário"))+"**")
-    st.caption(str(perfil[0].get("perfil_global","usuário")))
+    st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
 with cabecalho_sair:
-    if st.button("🚪 Sair",key="logout_button",use_container_width=True):
+    if st.button("Sair ↗",key="logout_button",use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
-paginas = [pagina_principal, pagina_detalhe, pagina_atas, pagina_equipes, pagina_conta_usuario]
+paginas = [pagina_principal,pagina_detalhe,pagina_atas,pagina_equipes,pagina_conta_usuario]
 if perfil[0].get("perfil_global") == "admin":
-    paginas.extend([pagina_central, pagina_gestao, pagina_admin])
-navegacao = st.navigation(paginas, position="hidden")
-st.caption("NAVEGAÇÃO • TODAS AS ÁREAS")
-for grupo_inicio in range(0,len(paginas),4):
-    grupo=paginas[grupo_inicio:grupo_inicio+4]
-    colunas=st.columns(len(grupo))
-    for coluna,pagina_item in zip(colunas,grupo):
-        with coluna:
-            st.page_link(pagina_item,label=pagina_item.title,icon=pagina_item.icon,use_container_width=True)
+    paginas.extend([pagina_central,pagina_gestao,pagina_admin])
+navegacao = st.navigation(paginas,position="hidden")
+st.markdown('<div style="height:1px;background:#DDD6FE;margin:.45rem 0 .6rem"></div>',unsafe_allow_html=True)
+colunas_menu=st.columns(len(paginas),gap="small")
+for coluna,pagina_item in zip(colunas_menu,paginas):
+    with coluna:
+        st.page_link(pagina_item,label=pagina_item.title,icon=pagina_item.icon,use_container_width=True)
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
