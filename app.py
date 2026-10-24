@@ -1537,7 +1537,7 @@ pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", 
 st.markdown("""
 <style>
 [data-testid="stHeader"] {background:#F7F5FF!important;}
-[data-testid="stMain"] .block-container {max-width:1380px!important;width:100%!important;padding:1rem clamp(1rem,3vw,2rem) 2rem!important;box-sizing:border-box!important;}
+[data-testid="stMain"] .block-container {max-width:1380px!important;width:100%!important;padding:4.25rem clamp(1rem,3vw,2rem) 2rem!important;box-sizing:border-box!important;}
 [data-testid="stMain"] [data-testid="stPageLink"] a {
   display:flex!important;align-items:center!important;justify-content:center!important;
   padding:.38rem .42rem!important;min-height:34px!important;
@@ -1559,7 +1559,7 @@ st.markdown("""
 .pf-user {text-align:right;white-space:nowrap;font-weight:700;color:#34206E;font-size:.85rem;}
 .pf-role {text-align:right;color:#77689D;font-size:.7rem;}
 @media(max-width:900px) {
- [data-testid="stMain"] .block-container {padding:.7rem .65rem 2rem!important;}
+ [data-testid="stMain"] .block-container {padding:4.5rem .85rem 2rem!important;}
  [data-testid="stMain"] [data-testid="stPageLink"] a {font-size:.7rem!important;white-space:normal!important;}
  .pf-brand {font-size:1.05rem;}
  .pf-user {font-size:.75rem;white-space:normal;}
