@@ -1594,7 +1594,6 @@ with st.container(key="pf_topbar"):
     destinos_menu=dict(zip(opcoes_menu,paginas))
     selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
     if selecao_menu:
-        st.session_state["menu_compacto"]=None
         st.switch_page(destinos_menu[selecao_menu])
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
