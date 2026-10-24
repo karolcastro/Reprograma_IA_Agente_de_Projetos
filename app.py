@@ -1540,7 +1540,11 @@ st.markdown("""
   max-width:1380px!important;
   padding:3rem clamp(1rem,3vw,2rem) 2rem!important;
 }
-.pf-brand{font-size:1.17rem;font-weight:800;color:#5630A6;line-height:1.3}
+.pf-brand{font-size:clamp(1.35rem,2vw,1.75rem);font-weight:850;color:#3D247E;letter-spacing:-.035em;line-height:1.2}
+.pf-brand .pf-ai{background:linear-gradient(95deg,#8B5CF6,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent}
+[data-testid="stButton"] button[kind="secondary"][data-testid="baseButton-secondary"]{transition:background .15s ease}
+.st-key-logout_button button{width:auto!important;min-width:0!important;padding:.22rem .7rem!important;height:30px!important;min-height:30px!important;font-size:.76rem!important;border-radius:8px!important;border:1px solid #C4B5FD!important;background:#F0EAFF!important;color:#4C1D95!important;float:right!important}
+.st-key-logout_button button:hover{background:#E3D8FF!important}
 .pf-subtitle{font-size:.72rem;color:#746795}
 .pf-user{text-align:right;font-weight:700;color:#34206E;font-size:.83rem}
 .pf-role{text-align:right;color:#77689D;font-size:.7rem}
@@ -1560,13 +1564,13 @@ st.markdown("""
 }
 </style>
 """,unsafe_allow_html=True)
-cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([5,2.6,1.1],vertical_alignment="center",gap="small")
+cabecalho_esquerda,cabecalho_usuario,cabecalho_sair=st.columns([6.8,2.2,0.65],vertical_alignment="center",gap="small")
 with cabecalho_esquerda:
-    st.markdown('<div class="pf-brand">💜 ProjectFlow AI</div><div class="pf-subtitle">Projetos · Portfólio · Governança</div>',unsafe_allow_html=True)
+    st.markdown('<div class="pf-brand">💜 ProjectFlow <span class="pf-ai">AI</span></div><div class="pf-subtitle">GERENCIAMENTO DE PROJETOS</div>',unsafe_allow_html=True)
 with cabecalho_usuario:
     st.markdown('<div class="pf-user">👤 '+html.escape(str(perfil[0].get("nome") or "Usuário"))+'</div><div class="pf-role">'+html.escape(str(perfil[0].get("perfil_global","usuário")))+'</div>',unsafe_allow_html=True)
 with cabecalho_sair:
-    if st.button("Sair",key="logout_button",use_container_width=True):
+    if st.button("↪ Sair",key="logout_button"):
         st.session_state.clear()
         st.rerun()
 
