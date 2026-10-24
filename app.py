@@ -1540,9 +1540,9 @@ st.markdown("""
 [data-testid="stMain"] .block-container {max-width:1380px!important;width:100%!important;padding:4.25rem clamp(1rem,3vw,2rem) 2rem!important;box-sizing:border-box!important;}
 [data-testid="stMain"] [data-testid="stPageLink"] a {
   display:flex!important;align-items:center!important;justify-content:center!important;
-  padding:.38rem .42rem!important;min-height:34px!important;
-  font-size:.85rem!important;font-weight:600!important;
-  border:1px solid #D9CDFB!important;border-radius:9px!important;
+  padding:.15rem .35rem!important;min-height:27px!important;max-height:32px!important;
+  font-size:.76rem!important;font-weight:500!important;
+  border:1px solid #E2D9FA!important;border-radius:7px!important;
   background:linear-gradient(110deg,#F1EAFF,#E8F0FF)!important;
   white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
 }
@@ -1552,7 +1552,7 @@ st.markdown("""
 }
 [data-testid="stMain"] [data-testid="stPageLink"] a span,
 [data-testid="stMain"] [data-testid="stPageLink"] a svg {
-  font-size:.85rem!important;
+  font-size:.76rem!important;
 }
 .pf-brand {font-size:1.25rem;font-weight:800;color:#5630A6;line-height:1.3;}
 .pf-subtitle {font-size:.73rem;color:#746795;margin-top:2px;}
@@ -1584,7 +1584,7 @@ st.markdown('<div style="height:1px;background:#DDD6FE;margin:.45rem 0 .6rem"></
 rotulos_menu = {"Visão executiva":"Visão executiva","Detalhes do projeto":"Projetos","Análise de atas":"Análise de atas","Squads e acessos":"Equipes e acessos","Minha conta":"Minha conta","Central de aprovações":"Aprovações","Gerenciar projetos":"Gerenciar projetos","Administração":"Administração"}
 for inicio in range(0,len(paginas),4):
     grupo=paginas[inicio:inicio+4]
-    colunas_menu=st.columns(4,gap="small")
+    colunas_menu=st.columns([1,1,1,1,0.6],gap="small")
     for coluna,pagina_item in zip(colunas_menu,grupo):
         with coluna:
             st.page_link(pagina_item,label=rotulos_menu.get(pagina_item.title,pagina_item.title),icon=pagina_item.icon,use_container_width=True)
