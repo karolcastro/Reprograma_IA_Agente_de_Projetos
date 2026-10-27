@@ -9,6 +9,7 @@ import requests
 import streamlit as st
 
 from farol import calcular_farol
+from resource_capacity import summarize_capacity
 
 st.set_page_config(page_title="ProjectFlow AI", page_icon="📊", layout="wide")
 
@@ -1027,25 +1028,20 @@ def pagina_administracao():
         for uid, pessoa in sorted(usuarios_ativos.items(), key=lambda x:x[1]["nome"].casefold()):
             atribuicoes = sorted(por_usuario.get(uid, []), key=lambda v:mapa_projetos[v[0]].casefold())
             capacidade = capacidade_percentual(pessoa)
-            saldo = (capacidade - totais_dedicacao[uid]) / 100 if capacidade is not None and not sem_definicao[uid] else None
-            situacao_capacidade = (
-                "Capacidade não definida" if capacidade is None else
-                "Alocações incompletas" if sem_definicao[uid] else
-                "Sobrealocado" if totais_dedicacao[uid] > capacidade else
-                "Capacidade completa" if totais_dedicacao[uid] == capacidade else
-                "Capacidade disponível"
+            resumo_capacidade = summarize_capacity(
+                capacidade, [dedicacao.get((uid, pid)) for pid, _ in atribuicoes]
             )
             linhas_pessoas.append({
                 "Pessoa": pessoa["nome"],
                 "Perfil": pessoa["perfil_global"],
                 "Projetos": len(atribuicoes),
                 "Dedicação total (%)": totais_dedicacao[uid],
-                "FTE alocado": round(totais_dedicacao[uid] / 100, 2),
-                "Capacidade disponível (%)": capacidade if capacidade is not None else "Não definida",
-                "FTE disponível": round(capacidade / 100, 2) if capacidade is not None else "Não definido",
-                "Saldo FTE": round(saldo, 2) if saldo is not None else "Não calculável",
-                "Alocações sem percentual": sem_definicao[uid],
-                "Situação": situacao_capacidade,
+                "FTE alocado": resumo_capacidade["assigned_fte"],
+                "Capacidade disponível (%)": resumo_capacidade["available_percent"] if capacidade is not None else "Não definida",
+                "FTE disponível": resumo_capacidade["available_fte"] if capacidade is not None else "Não definido",
+                "Saldo FTE": resumo_capacidade["remaining_fte"] if resumo_capacidade["remaining_fte"] is not None else "Não calculável",
+                "Alocações sem percentual": resumo_capacidade["missing_allocations"],
+                "Situação": resumo_capacidade["status"],
                 "Projetos e papéis": ", ".join(f'{mapa_projetos[pid]} ({papel})'
                                                 for pid, papel in atribuicoes) or "Nenhum vínculo",
             })
