@@ -1348,17 +1348,19 @@ def pagina_gerenciar_portfolio():
                 elif status_p != "concluida" and progresso_p == 100:
                     st.error("Para marcar 100%, selecione Concluída.")
                 else:
+                    # Evita uma combinação contraditória: progresso > 0 não pode continuar como "Não iniciada".
+                    status_final = "em_andamento" if status_p == "aberta" and progresso_p > 0 else status_p
                     try:
                         atualizar_registro("pendencias", pendencia["id"], {
                             "descricao":descricao.strip(),
                             "responsavel":responsavel_p.strip() or None,
                             "prazo":prazo_p.isoformat() if prazo_p else None,
-                            "status":status_p, "prioridade":prioridade_p,
-                            "progresso":100 if status_p == "concluida" else progresso_p})
+                            "status":status_final, "prioridade":prioridade_p,
+                            "progresso":100 if status_final == "concluida" else progresso_p})
                     except (requests.RequestException, PermissionError, ValueError):
                         st.error("Não foi possível salvar. Verifique os dados e suas permissões.")
                     else:
-                        st.success("Pendência atualizada e alteração auditada.")
+                        st.success("Pendência atualizada e alteração auditada." if status_final == status_p else "Pendência atualizada. Como o progresso é maior que 0%, o status foi ajustado para Em andamento.")
                         st.rerun()
 
 
