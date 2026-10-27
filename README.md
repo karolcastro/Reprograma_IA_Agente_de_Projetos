@@ -15,6 +15,14 @@
 
 </div>
 
+## 🔌 MCP — estrutura cliente e servidor (modo demonstração)
+
+O projeto inclui um **MCP Server** e um **MCP Client** com transporte local `stdio`, ferramentas de consulta e testes automatizados, usando **dados sintéticos**. A aplicação em produção não foi conectada a esse servidor demo. **SharePoint e Teams são integrações futuras**, planejadas via Microsoft Graph e OAuth.
+
+- [Arquitetura MCP, desenho, segurança, testes e roadmap](docs/arquitetura-mcp.md)
+- Validar localmente: `pip install -r requirements-mcp.txt && python -m pytest -q tests/test_mcp_catalog.py tests/test_mcp_integration.py`
+- Executar cliente de exemplo: `python -m mcp_projectflow.client`
+
 ## 🎯 Sobre o projeto
 
 Gerenciar vários projetos exige acompanhar **prazos, responsáveis, pendências, riscos, equipes e decisões tomadas em reuniões**. Quando essas informações ficam espalhadas em planilhas e atas, a atualização do portfólio pode se tornar lenta e sujeita a inconsistências.
