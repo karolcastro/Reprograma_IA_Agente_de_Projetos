@@ -843,7 +843,9 @@ def pagina_administracao():
             nome_nova = st.text_input("Nome completo")
             funcao_nova = st.text_input("Cargo / especialidade")
             email_novo = st.text_input("E-mail de contato (opcional)")
+            capacidade_indefinida_nova = st.checkbox("Capacidade ainda não definida", value=True)
             capacidade_nova = st.slider("Capacidade disponível (%)", 0, 100, 100, step=5,
+                                        disabled=capacidade_indefinida_nova,
                                         help="100% equivale a 1,0 FTE disponível.")
             salvar_pessoa = st.form_submit_button("Cadastrar pessoa", type="primary")
         if salvar_pessoa:
@@ -866,7 +868,7 @@ def pagina_administracao():
                     headers["Prefer"] = "return=representation"
                     payload = {"nome": nome_limpo, "funcao": funcao_nova.strip() or None,
                                "email_demo": email_limpo, "perfil_global": "membro",
-                               "ativo": True, "capacidade_disponivel_percentual": capacidade_nova}
+                               "ativo": True, "capacidade_disponivel_percentual": None if capacidade_indefinida_nova else capacidade_nova}
                     resposta = requests.post(endpoint, headers=headers, json=payload, timeout=15)
                     resposta.raise_for_status()
                     if len(resposta.json()) != 1:
@@ -929,7 +931,7 @@ def pagina_administracao():
                     if "email_demo" not in df_pessoas.columns:
                         df_pessoas["email_demo"] = ""
                     if "capacidade_disponivel_percentual" not in df_pessoas.columns:
-                        df_pessoas["capacidade_disponivel_percentual"] = 100
+                        df_pessoas["capacidade_disponivel_percentual"] = None
                     df_pessoas["nome"] = df_pessoas["nome"].fillna("").astype(str).str.strip()
                     df_pessoas["email_demo"] = df_pessoas["email_demo"].fillna("").astype(str).str.strip().str.lower()
                     df_pessoas["funcao"] = df_pessoas["funcao"].fillna("").astype(str).str.strip()
@@ -947,22 +949,23 @@ def pagina_administracao():
                         for idx, linha in df_pessoas.iterrows():
                             nome_linha = str(linha["nome"]).strip()
                             email_linha = str(linha["email_demo"]).strip().lower() or None
-                            capacidade_linha = linha["capacidade_disponivel_percentual"]
+                            capacidade_raw = linha["capacidade_disponivel_percentual"]
+                            capacidade_linha = None if pd.isna(capacidade_raw) or str(capacidade_raw).strip() == "" else pd.to_numeric(capacidade_raw, errors="coerce")
                             if not nome_linha:
                                 ignoradas.append(f"Linha {idx+2}: nome vazio")
                                 continue
                             if nome_linha.casefold() in existentes_nomes or nome_linha.casefold() in vistos_csv:
                                 ignoradas.append(f"{nome_linha}: nome duplicado")
                                 continue
-                            if pd.isna(capacidade_linha) or capacidade_linha < 0 or capacidade_linha > 100:
-                                ignoradas.append(f"{nome_linha}: capacidade deve ser de 0 a 100")
+                            if capacidade_linha is not None and (pd.isna(capacidade_linha) or capacidade_linha < 0 or capacidade_linha > 100 or float(capacidade_linha) != int(capacidade_linha)):
+                                ignoradas.append(f"{nome_linha}: capacidade deve ser um inteiro de 0 a 100 ou ficar vazia")
                                 continue
                             if email_linha and (email_linha in existentes_emails):
                                 ignoradas.append(f"{nome_linha}: e-mail já cadastrado")
                                 continue
                             payload = {"nome": nome_linha, "funcao": str(linha["funcao"]).strip() or None,
                                        "email_demo": email_linha, "perfil_global": "membro", "ativo": True,
-                                       "capacidade_disponivel_percentual": int(capacidade_linha)}
+                                       "capacidade_disponivel_percentual": int(capacidade_linha) if capacidade_linha is not None else None}
                             try:
                                 resp = requests.post(endpoint, headers=headers, json=payload, timeout=15)
                                 resp.raise_for_status()
