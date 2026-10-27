@@ -266,6 +266,10 @@ def dias_restantes(p):
 def formatar_data(valor):
     return date.fromisoformat(str(valor)).strftime("%d/%m/%Y") if valor else "—"
 
+def capacidade_percentual(pessoa):
+    valor = pessoa.get("capacidade_disponivel_percentual")
+    return int(valor) if valor is not None else None
+
 def pagina_dashboard():
     st.title("Visão executiva")
     st.markdown('<p class="subtitle">Portfólio de projetos • Indicadores e entregas</p>', unsafe_allow_html=True)
@@ -882,9 +886,12 @@ def pagina_administracao():
             with st.form("form_editar_recurso"):
                 funcao_editada = st.text_input("Cargo / especialidade",
                     value=pessoa_editar.get("funcao") or "")
+                capacidade_indefinida = st.checkbox("Capacidade ainda não definida",
+                    value=capacidade_percentual(pessoa_editar) is None)
                 capacidade_editada = st.slider("Capacidade disponível (%)", 0, 100,
-                    value=int(pessoa_editar.get("capacidade_disponivel_percentual",100)), step=5,
-                    help="100% = 1,0 FTE. Use a capacidade real disponível para projetos.")
+                    value=capacidade_percentual(pessoa_editar) if capacidade_percentual(pessoa_editar) is not None else 100,
+                    step=5, disabled=capacidade_indefinida,
+                    help="100% = 1,0 FTE. Informe somente uma capacidade confirmada.")
                 ativo_editado = st.checkbox("Pessoa ativa para novas alocações",
                     value=bool(pessoa_editar.get("ativo",True)))
                 salvar_edicao = st.form_submit_button("Salvar alterações", type="primary")
@@ -896,7 +903,7 @@ def pagina_administracao():
                     resposta = requests.patch(endpoint, headers=headers,
                         params={"id":"eq."+str(pessoa_editar["id"]), "select":"id"},
                         json={"funcao":funcao_editada.strip() or None,
-                              "capacidade_disponivel_percentual":capacidade_editada,
+                              "capacidade_disponivel_percentual":None if capacidade_indefinida else capacidade_editada,
                               "ativo":ativo_editado}, timeout=15)
                     resposta.raise_for_status()
                     if len(resposta.json()) != 1:
@@ -1019,20 +1026,26 @@ def pagina_administracao():
         linhas_pessoas = []
         for uid, pessoa in sorted(usuarios_ativos.items(), key=lambda x:x[1]["nome"].casefold()):
             atribuicoes = sorted(por_usuario.get(uid, []), key=lambda v:mapa_projetos[v[0]].casefold())
+            capacidade = capacidade_percentual(pessoa)
+            saldo = (capacidade - totais_dedicacao[uid]) / 100 if capacidade is not None and not sem_definicao[uid] else None
+            situacao_capacidade = (
+                "Capacidade não definida" if capacidade is None else
+                "Alocações incompletas" if sem_definicao[uid] else
+                "Sobrealocado" if totais_dedicacao[uid] > capacidade else
+                "Capacidade completa" if totais_dedicacao[uid] == capacidade else
+                "Capacidade disponível"
+            )
             linhas_pessoas.append({
                 "Pessoa": pessoa["nome"],
                 "Perfil": pessoa["perfil_global"],
                 "Projetos": len(atribuicoes),
                 "Dedicação total (%)": totais_dedicacao[uid],
                 "FTE alocado": round(totais_dedicacao[uid] / 100, 2),
-                "Capacidade disponível (%)": int(pessoa.get("capacidade_disponivel_percentual", 100)),
-                "FTE disponível": round(int(pessoa.get("capacidade_disponivel_percentual", 100)) / 100, 2),
-                "Saldo FTE": round((int(pessoa.get("capacidade_disponivel_percentual", 100)) - totais_dedicacao[uid]) / 100, 2),
+                "Capacidade disponível (%)": capacidade if capacidade is not None else "Não definida",
+                "FTE disponível": round(capacidade / 100, 2) if capacidade is not None else "Não definido",
+                "Saldo FTE": round(saldo, 2) if saldo is not None else "Não calculável",
                 "Alocações sem percentual": sem_definicao[uid],
-                "Situação": ("Alocações incompletas" if sem_definicao[uid] else
-                             "Sobrealocado" if totais_dedicacao[uid] > int(pessoa.get("capacidade_disponivel_percentual", 100)) else
-                             "Capacidade completa" if totais_dedicacao[uid] == int(pessoa.get("capacidade_disponivel_percentual", 100)) else
-                             "Capacidade disponível"),
+                "Situação": situacao_capacidade,
                 "Projetos e papéis": ", ".join(f'{mapa_projetos[pid]} ({papel})'
                                                 for pid, papel in atribuicoes) or "Nenhum vínculo",
             })
@@ -1079,8 +1092,8 @@ def pagina_administracao():
     st.subheader("Cadastro central de pessoas")
     st.caption("Recursos sem login no sistema. O e-mail, quando informado, é apenas dado de contato.")
     st.dataframe([{"Nome":u["nome"], "Cargo / especialidade":u.get("funcao") or "—",
-                   "Capacidade disponível (%)":int(u.get("capacidade_disponivel_percentual",100)),
-                   "Capacidade (FTE)":round(int(u.get("capacidade_disponivel_percentual",100))/100,2),
+                   "Capacidade disponível (%)":capacidade_percentual(u) if capacidade_percentual(u) is not None else "Não definida",
+                   "Capacidade (FTE)":round(capacidade_percentual(u)/100,2) if capacidade_percentual(u) is not None else "Não definido",
                    "Perfil":u["perfil_global"], "Situação":"Ativo" if u["ativo"] else "Inativo"}
                   for u in sorted(usuarios,key=lambda x:x["nome"])],
                  hide_index=True,use_container_width=True)
