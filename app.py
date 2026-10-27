@@ -1547,64 +1547,68 @@ def icone_tipo_projeto(nome):
 
 
 def pagina_squads():
-    st.title("👥 Minhas squads e acessos")
-    st.caption("Equipes e projetos autorizados para sua conta · Dados do Supabase")
+    st.title("👥 Equipes e recursos")
+    st.caption("Visão da gerente de projetos sobre a composição das equipes e a distribuição de recursos.")
     try:
-        equipes = consultar("squads", "id,nome,descricao", {"ativo": "eq.true"})
-        membros = consultar("squad_membros", "squad_id,papel")
+        pessoas = consultar("perfis_usuarios", "id,nome,perfil_global,ativo,funcao,capacidade_disponivel_percentual")
+        equipes = consultar("squads", "id,nome,descricao", {"ativo":"eq.true"})
+        membros = consultar("squad_membros", "squad_id,usuario_id,papel")
         vinculos = consultar("projeto_squads", "squad_id,projeto_id")
-        acessos = consultar("projeto_acessos", "projeto_id,papel,dedicacao_percentual")
+        alocacoes = consultar("projeto_acessos", "usuario_id,projeto_id,papel,dedicacao_percentual")
     except (requests.RequestException, PermissionError):
-        st.error("Não foi possível consultar as squads e permissões.")
+        st.error("Não foi possível consultar equipes e recursos.")
         return
-    ids_visiveis = {p["id"] for p in projetos}
-    acesso_por_projeto = {a["projeto_id"]: a["papel"] for a in acessos}
-    st.caption("Os números consideram somente os registros que você tem permissão para consultar.")
-    a, b, c = st.columns(3)
-    a.metric("Minhas squads", len(equipes))
-    b.metric("Projetos autorizados", len(ids_visiveis))
-    c.metric("Vínculos com squads", len(membros))
-    st.subheader("📁 Meus projetos")
-    st.caption("O mesmo usuário pode participar de diversos projetos e squads. Cada projeto é contado uma única vez.")
-    linhas_meus_projetos = []
-    for p in sorted(projetos, key=lambda p:p["nome"].casefold()):
-        icone, categoria = icone_tipo_projeto(p["nome"])
-        linhas_meus_projetos.append({
-            "Projeto": f'{icone} {p["nome"]}',
-            "Tipo": categoria,
-            "Meu papel": acesso_por_projeto.get(p["id"], "Não informado"),
-            "Minha dedicação (%)": next((a.get("dedicacao_percentual") for a in acessos if a["projeto_id"] == p["id"]), None),
+
+    mapa_pessoas = {p["id"]:p for p in pessoas}
+    recursos_ativos = [p for p in pessoas if p.get("ativo") and p.get("perfil_global") != "admin"]
+    met1, met2, met3 = st.columns(3)
+    met1.metric("Recursos ativos", len(recursos_ativos))
+    met2.metric("Projetos no portfólio", len(projetos))
+    met3.metric("Vínculos com squads", len(membros))
+
+    st.subheader("Distribuição de pessoas por projeto")
+    linhas_projeto = []
+    for projeto in sorted(projetos, key=lambda p:p["nome"].casefold()):
+        registros = [a for a in alocacoes if a["projeto_id"] == projeto["id"] and a["usuario_id"] in mapa_pessoas and mapa_pessoas[a["usuario_id"]].get("perfil_global") != "admin"]
+        soma_conhecida = sum(int(a["dedicacao_percentual"] or 0) for a in registros)
+        sem_percentual = sum(a.get("dedicacao_percentual") is None for a in registros)
+        equipe_nomes = []
+        for alocacao in registros:
+            pessoa = mapa_pessoas[alocacao["usuario_id"]]
+            percentual = alocacao.get("dedicacao_percentual")
+            equipe_nomes.append(pessoa["nome"] + (f" ({percentual}%)" if percentual is not None else " (dedicação pendente)"))
+        linhas_projeto.append({
+            "Projeto": projeto["nome"],
+            "Pessoas": len(registros),
+            "FTE alocado (conhecido)": round(soma_conhecida/100, 2),
+            "Alocações sem percentual": sem_percentual,
+            "Equipe": ", ".join(equipe_nomes) or "Nenhum recurso vinculado",
         })
-    if linhas_meus_projetos:
-        st.dataframe(linhas_meus_projetos, hide_index=True, use_container_width=True)
-    else:
-        st.info("Você ainda não possui projetos autorizados.")
-    st.markdown("**Legenda dos papéis:** gerente = gestão do projeto · líder = liderança · membro = participante · leitor = consulta.")
-    st.caption("**Ícones por tipo de projeto:** 🏢 ERP · 📊 BI/Analytics · 🔗 Integração/Dados · ⚙️ Automação · 🛡️ Segurança · 💻 Aplicações · ☁️ Cloud · 📁 Geral.")
-    st.caption("O tipo é sugerido a partir do nome do projeto; não altera os dados ou as permissões.")
+    st.dataframe(linhas_projeto, hide_index=True, use_container_width=True)
+    st.caption("FTE conhecido soma somente as dedicações informadas. Cadastre os percentuais antes de usar o total como capacidade confirmada.")
+
+    st.subheader("Composição das squads")
     if not equipes:
-        st.info("Nenhuma squad vinculada ao seu usuário.")
+        st.info("Nenhuma squad cadastrada.")
         return
     for equipe in equipes:
         with st.container(border=True):
-            icone_squad = {"erp":"🏢","dados & bi":"📊","integrações":"🔗","integracoes":"🔗",
-                           "automação":"⚙️","automacao":"⚙️"}
-            simbolo = icone_squad.get(str(equipe["nome"]).strip().casefold(), "👥")
-            st.subheader(simbolo + " " + equipe["nome"])
+            st.markdown("### " + html.escape(str(equipe["nome"])))
             if equipe.get("descricao"):
                 st.caption(equipe["descricao"])
-            papeis = [m["papel"] for m in membros if m["squad_id"] == equipe["id"]]
-            st.write("**Seu papel na squad:** " + (", ".join(papeis) if papeis else "Não informado"))
-            projetos_equipe = [p for p in projetos if p["id"] in ids_visiveis and
-                any(v["squad_id"] == equipe["id"] and v["projeto_id"] == p["id"] for v in vinculos)]
-            if not projetos_equipe:
-                st.caption("Nenhum projeto autorizado vinculado a esta squad.")
-            for p in projetos_equipe:
-                icone, tipo = icone_tipo_projeto(p["nome"])
-                st.markdown(icone + " **" + html.escape(str(p["nome"])) +
-                            "** · " + tipo + " · Acesso: " +
-                            html.escape(str(acesso_por_projeto.get(p["id"], "não informado"))))
-    st.info("Esta página é de consulta. A administração de membros e permissões será habilitada somente após configurar o perfil Administradora/PMO.")
+            integrantes = [m for m in membros if m["squad_id"] == equipe["id"]]
+            if integrantes:
+                st.dataframe([
+                    {"Pessoa": mapa_pessoas[m["usuario_id"]]["nome"] if m["usuario_id"] in mapa_pessoas else "Pessoa indisponível",
+                     "Cargo / especialidade": (mapa_pessoas[m["usuario_id"]].get("funcao") or "—") if m["usuario_id"] in mapa_pessoas else "—",
+                     "Papel na squad": m["papel"]}
+                    for m in integrantes
+                ], hide_index=True, use_container_width=True)
+            else:
+                st.caption("Nenhuma pessoa vinculada a esta squad.")
+            projetos_equipe = [p for p in projetos if any(v["squad_id"] == equipe["id"] and v["projeto_id"] == p["id"] for v in vinculos)]
+            st.markdown("**Projetos associados:** " + (", ".join(p["nome"] for p in projetos_equipe) if projetos_equipe else "Nenhum"))
+    st.info("Para cadastrar pessoas, atualizar capacidade ou alterar vínculos, use a página Pessoas e capacidade.")
 
 if not configurado():
     st.error("Configuração pendente: adicione SUPABASE_PUBLISHABLE_KEY aos Secrets do Streamlit.")
