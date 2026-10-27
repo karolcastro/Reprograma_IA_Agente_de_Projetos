@@ -1020,7 +1020,7 @@ def pagina_administracao():
                 "Projeto": f"{icone} {nome_projeto}",
                 "Pessoas": len(participantes),
                 "Dedicação planejada somada (%)": sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes),
-                "FTE utilizado": round(sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes) / 100, 2),
+                "FTE utilizado (conhecido)": round(sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes) / 100, 2),
                 "Sem dedicação informada": sum(dedicacao.get((uid,pid)) is None for uid, _ in participantes),
                 "Participantes e papéis": ", ".join(f'{usuarios_ativos[uid]["nome"]} ({papel})'
                                                     for uid, papel in participantes) or "Nenhum vínculo",
