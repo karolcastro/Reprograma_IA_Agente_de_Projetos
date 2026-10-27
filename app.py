@@ -1117,7 +1117,7 @@ def pagina_administracao():
     st.divider()
     st.subheader("Gerenciar vínculos")
     st.caption("Alterações aplicadas imediatamente. Cada inclusão ou remoção gera registro de auditoria no banco.")
-    tipo = st.radio("Tipo de acesso", ["Projetos", "Squads"], horizontal=True)
+    tipo = st.radio("Tipo de vínculo", ["Projetos", "Squads"], horizontal=True)
     if tipo == "Projetos":
         tabela, coluna = "projeto_acessos", "projeto_id"
         opcoes = sorted(projetos, key=lambda p:p["nome"])
@@ -1131,18 +1131,18 @@ def pagina_administracao():
         registros = membros
         papeis = ["lider", "membro"]
     existentes = {r[coluna]:r["papel"] for r in registros if r["usuario_id"]==identificador}
-    operacao = st.radio("Operação", ["Conceder acesso", "Revogar acesso"], horizontal=True)
-    if operacao == "Conceder acesso":
+    operacao = st.radio("Operação", ["Adicionar vínculo", "Remover vínculo"], horizontal=True)
+    if operacao == "Adicionar vínculo":
         disponiveis = [p for p in opcoes if p["id"] not in existentes]
         if not disponiveis:
             st.info("Este usuário já possui acesso a todos os itens deste tipo.")
         else:
-            itens = st.multiselect("Conceder acesso a um ou mais " + ("projetos" if tipo == "Projetos" else "squads"),
+            itens = st.multiselect("Adicionar a um ou mais " + ("projetos" if tipo == "Projetos" else "squads"),
                                    disponiveis, format_func=rotulo,
                                    help="Selecione vários itens. Cada vínculo terá seu próprio registro e permissão.")
             papel_novo = st.selectbox("Papel", papeis)
             confirmar = st.checkbox("Confirmo a concessão dos acessos selecionados", key="confirma_concessao")
-            if st.button("Conceder acessos", disabled=not (confirmar and itens), type="primary"):
+            if st.button("Adicionar vínculos", disabled=not (confirmar and itens), type="primary"):
                 incluidos = 0
                 falhas = []
                 for item in itens:
@@ -1153,7 +1153,7 @@ def pagina_administracao():
                     except (requests.RequestException, PermissionError) as erro:
                         falhas.append(rotulo(item))
                 if incluidos:
-                    st.success(f"{incluidos} vínculo(s) concedido(s) e enviado(s) para auditoria.")
+                    st.success(f"{incluidos} vínculo(s) criado(s) e enviado(s) para auditoria.")
                 if falhas:
                     st.error("Não foi possível conceder acesso a: " + ", ".join(falhas) +
                              ". Confira os vínculos antes de tentar novamente.")
@@ -1167,16 +1167,16 @@ def pagina_administracao():
             st.info("Este usuário não possui vínculos deste tipo.")
         else:
             item = st.selectbox("Revogar acesso a", revogaveis, format_func=rotulo)
-            st.warning("A revogação retira imediatamente a visibilidade deste item.")
+            st.warning("A remoção encerra o vínculo da pessoa com este item.")
             confirmar = st.checkbox("Confirmo a revogação deste acesso", key="confirma_revogacao")
-            if st.button("Revogar acesso", disabled=not confirmar, type="primary"):
+            if st.button("Remover vínculo", disabled=not confirmar, type="primary"):
                 try:
                     alterar_vinculo(tabela, "remover",
                         {"usuario_id":identificador, coluna:item["id"]})
                 except requests.RequestException:
                     st.error("Operação não autorizada ou indisponível. Nenhuma confirmação de alteração.")
                 else:
-                    st.success("Acesso revogado e registrado para auditoria.")
+                    st.success("Vínculo removido e registrado para auditoria.")
                     st.rerun()
 
 
