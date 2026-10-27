@@ -256,3 +256,17 @@ Projeto de portfólio com foco em **transformar necessidades de negócio em solu
 ---
 
 <div align="center"><sub>Projeto demonstrativo em evolução • Dados fictícios nas atas públicas • Desenvolvido com Python, Streamlit, PostgreSQL/Supabase e GitHub.</sub></div>
+
+## Governança de status e progresso
+
+As pendências usam os seguintes estados de negócio: `aberta` (exibida como **Não iniciada**), `em_andamento`, `bloqueada` e `concluida`.
+
+Regras de integridade:
+- Uma pendência com progresso maior que 0% não deve ser exibida como **Não iniciada**; a interface a apresenta como **Em andamento** mesmo se encontrar um registro legado inconsistente.
+- Ao gravar uma pendência, a aplicação normaliza o estado aberto para `em_andamento` quando o progresso é maior que 0%.
+- O banco de dados possui um gatilho `validar_progresso_pendencia` para normalizar atualizações feitas diretamente ou por integrações: conclusão define 100%, e progresso 100% sem conclusão é rejeitado.
+- Registros legados foram normalizados no banco; a verificação mais recente não encontrou combinações contraditórias entre estado e progresso.
+- A tela busca as pendências diretamente no Supabase REST. Se a tela continuar mostrando valores antigos, atualizar a página e confirmar que a implantação do Streamlit está usando o commit mais recente.
+
+A validação é aplicada em três camadas: interface, gravação da aplicação e banco de dados, reduzindo a chance de inconsistência em futuras integrações com APIs, SharePoint, Teams ou agentes MCP.
+
