@@ -822,8 +822,8 @@ def pagina_administracao():
     except (requests.RequestException, PermissionError):
         st.error("Não foi possível consultar o cadastro administrativo.")
         return
-    if len(usuarios) < 2:
-        st.warning("A consulta administrativa não retornou os usuários esperados. Verifique as permissões RLS.")
+    if not usuarios:
+        st.warning("A consulta administrativa não retornou pessoas. Verifique as permissões RLS.")
         return
     a,b,c = st.columns(3)
     a.metric("Pessoas cadastradas", len(usuarios))
@@ -1727,8 +1727,8 @@ pagina_conta_usuario = st.Page(pagina_conta, title="Minha conta", icon="🔒")
 pagina_principal = st.Page(pagina_dashboard, title="Visão executiva", icon="📊", default=True)
 pagina_detalhe = st.Page(pagina_detalhes, title="Detalhes do projeto", icon="📁")
 pagina_atas = st.Page(pagina_atas_ia, title="Análise de atas", icon="🤖")
-pagina_equipes = st.Page(pagina_squads, title="Squads e acessos", icon="👥")
-pagina_admin = st.Page(pagina_administracao, title="Administração", icon="🛡️")
+pagina_equipes = st.Page(pagina_squads, title="Equipes e recursos", icon="👥")
+pagina_admin = st.Page(pagina_administracao, title="Pessoas e capacidade", icon="🛡️")
 pagina_central = st.Page(pagina_central_atas, title="Central de aprovações", icon="📥")
 pagina_gestao = st.Page(pagina_gerenciar_portfolio, title="Gerenciar projetos", icon="📝")
 st.markdown("""
@@ -1799,7 +1799,7 @@ with st.container(key="pf_topbar"):
     if perfil[0].get("perfil_global")=="admin":
         paginas.extend([pagina_central,pagina_gestao,pagina_admin])
     navegacao=st.navigation(paginas,position="hidden")
-    rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Squads e acessos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Administração":"🛡️ Admin"}
+    rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Equipes e recursos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Pessoas e capacidade":"🛡️ Capacidade"}
     opcoes_menu=[rotulos_menu.get(p.title,p.title) for p in paginas]
     destinos_menu=dict(zip(opcoes_menu,paginas))
     selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
