@@ -75,6 +75,8 @@ erDiagram
         text nome
         text perfil_global
         boolean ativo
+        text funcao
+        int capacidade_disponivel_percentual
     }
     AUTH_USERS {
         uuid id PK
@@ -97,12 +99,34 @@ erDiagram
         bigint projeto_id PK,FK
         uuid usuario_id PK,FK
         text papel
+        int dedicacao_percentual
     }
 ```
 
 **Nota:** `auth.users` pertence ao schema gerenciado pelo Supabase Auth. `app_private.admin_allowlist` e as tabelas privadas de auditoria não são expostas como dados de domínio na API pública. A coluna `revisado_por` da fila aponta para `auth.users`.
 
-## 2. Organização lógica
+## 2.1 Modelo de acesso e capacidade (estado atual)
+
+A aplicação segue o modelo **single-manager**: somente a gerente de projetos possui vínculo com Supabase Auth e pode entrar na interface. Os demais profissionais são recursos de planejamento, não usuários de login.
+
+- `perfis_usuarios.auth_user_id`: nulo para os recursos; preenchido apenas para a gerente autorizada.
+- `perfis_usuarios.funcao`: cargo ou especialidade do recurso.
+- `perfis_usuarios.capacidade_disponivel_percentual`: capacidade disponível para alocação, de 0 a 100; 100% equivale a 1,0 FTE.
+- `projeto_acessos.dedicacao_percentual`: dedicação planejada de uma pessoa em um projeto, de 0 a 100. A relação pessoa-projeto permite várias alocações por profissional.
+
+### Cálculos de capacidade
+
+- **FTE alocado por projeto:** soma das dedicações percentuais dos participantes dividida por 100.
+- **FTE alocado por pessoa:** soma das dedicações da pessoa em todos os projetos dividida por 100.
+- **Saldo FTE:** (capacidade disponível percentual − dedicação total percentual) / 100.
+- **Sobrealocação:** dedicação total superior à capacidade disponível.
+- **Alocação incompleta:** pelo menos um vínculo sem percentual definido; nesse caso, o saldo deve ser interpretado com cautela.
+
+Esses números representam planejamento, não horas efetivamente trabalhadas. O cadastro e a importação CSV são exclusivos da gerente. O CSV exige `nome` e aceita `funcao`, `email_demo` e `capacidade_disponivel_percentual`.
+
+**Segurança:** quatro perfis de demonstração tiveram o campo `auth_user_id` desvinculado, sem apagar suas contas do Supabase Auth e sem remover vínculos de projeto ou squad. A autorização RLS continua ativa; o acesso à aplicação não deve ser concedido a recursos sem vínculo de autenticação autorizado.
+
+## 2.2 Organização lógica
 
 | Domínio | Tabelas | Responsabilidade |
 |---|---|---|
