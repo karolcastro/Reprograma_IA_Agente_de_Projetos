@@ -15,6 +15,16 @@
 
 </div>
 
+## 👥 Gestão de recursos e capacidade FTE
+
+O acesso ao sistema é exclusivo da gerente de projetos. Os integrantes são cadastrados como recursos de planejamento sem vínculo de autenticação, e podem participar de vários projetos. O cadastro permite inclusão manual e importação CSV.
+
+- Capacidade disponível por pessoa (percentual); pode permanecer não definida até ser confirmada.
+- Dedicação planejada por projeto; 100% = 1,0 FTE.
+- Visão de FTE alocado, capacidade disponível, saldo e possíveis sobrealocações.
+- Cálculos extraídos para `resource_capacity.py` com testes automatizados.
+- Modelo e regras de dados: [docs/modelagem-dados.md](docs/modelagem-dados.md).
+
 ## 🔌 MCP — estrutura cliente e servidor (modo demonstração)
 
 O projeto inclui um **MCP Server** e um **MCP Client** com transporte local `stdio`, ferramentas de consulta e testes automatizados, usando **dados sintéticos**. A aplicação em produção não foi conectada a esse servidor demo. **SharePoint e Teams são integrações futuras**, planejadas via Microsoft Graph e OAuth.
