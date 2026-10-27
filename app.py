@@ -324,7 +324,15 @@ def pagina_dashboard():
             linhas_tarefas = []
             for t in tarefas:
                 prioridade = rotulos_prioridade.get(t.get("prioridade"), "🟡 Média")
-                situacao_t = rotulos_status.get(t.get("status"), str(t.get("status") or "Não definida"))
+                status_registrado = t.get("status")
+                progresso_registrado = int(t.get("progresso") or 0)
+                # Camada defensiva de apresentação: não exibir "Não iniciada" quando há progresso real.
+                if status_registrado == "aberta" and progresso_registrado > 0:
+                    situacao_t = "Em andamento"
+                elif status_registrado == "concluida" or progresso_registrado == 100:
+                    situacao_t = "Concluída"
+                else:
+                    situacao_t = rotulos_status.get(status_registrado, str(status_registrado or "Não definida"))
                 nome_projeto = nomes_projetos.get(t["projeto_id"], "Projeto indisponível")
                 if filtro_projeto_t != "Todos" and nome_projeto != filtro_projeto_t:
                     continue
