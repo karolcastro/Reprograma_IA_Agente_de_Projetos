@@ -917,7 +917,8 @@ def pagina_administracao():
                     st.success("Cadastro atualizado.")
                     st.rerun()
     with aba_csv:
-        st.markdown("O arquivo deve conter a coluna obrigatória `nome`. Colunas opcionais: `funcao`, `email_demo`, `capacidade_disponivel_percentual`.")
+        st.markdown("O arquivo deve conter a coluna obrigatória `nome`. Colunas opcionais: `funcao`, `email_demo`, `capacidade_disponivel_percentual`. Deixe a capacidade vazia se ainda não estiver confirmada.")
+        st.download_button("Baixar modelo CSV", data="nome,funcao,email_demo,capacidade_disponivel_percentual\\n", file_name="modelo_recursos_projectflow.csv", mime="text/csv")
         arquivo_pessoas = st.file_uploader("Selecione um CSV", type=["csv"], key="csv_pessoas")
         if arquivo_pessoas is not None:
             try:
