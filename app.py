@@ -832,7 +832,7 @@ def pagina_administracao():
 
     st.subheader("👤 Cadastro de pessoas e capacidade")
     st.caption("As pessoas cadastradas aqui são recursos de planejamento, não contas de acesso. Somente a gerente de projetos entra no sistema.")
-    aba_manual, aba_csv = st.tabs(["Cadastrar pessoa", "Importar CSV"])
+    aba_manual, aba_editar, aba_csv = st.tabs(["Cadastrar pessoa", "Editar capacidade", "Importar CSV"])
     with aba_manual:
         with st.form("form_nova_pessoa", clear_on_submit=True):
             nome_nova = st.text_input("Nome completo")
@@ -870,6 +870,41 @@ def pagina_administracao():
                     st.error("Não foi possível cadastrar a pessoa. Verifique as permissões e os dados.")
                 else:
                     st.success("Pessoa cadastrada como recurso, sem vínculo de login.")
+                    st.rerun()
+    with aba_editar:
+        recursos_editaveis = sorted([u for u in usuarios if u.get("perfil_global") != "admin"],
+                                    key=lambda u:u["nome"].casefold())
+        if not recursos_editaveis:
+            st.info("Cadastre uma pessoa para começar.")
+        else:
+            pessoa_editar = st.selectbox("Pessoa", recursos_editaveis,
+                format_func=lambda u:u["nome"], key="editar_recurso_pessoa")
+            with st.form("form_editar_recurso"):
+                funcao_editada = st.text_input("Cargo / especialidade",
+                    value=pessoa_editar.get("funcao") or "")
+                capacidade_editada = st.slider("Capacidade disponível (%)", 0, 100,
+                    value=int(pessoa_editar.get("capacidade_disponivel_percentual",100)), step=5,
+                    help="100% = 1,0 FTE. Use a capacidade real disponível para projetos.")
+                ativo_editado = st.checkbox("Pessoa ativa para novas alocações",
+                    value=bool(pessoa_editar.get("ativo",True)))
+                salvar_edicao = st.form_submit_button("Salvar alterações", type="primary")
+            if salvar_edicao:
+                try:
+                    endpoint = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/perfis_usuarios"
+                    headers = dict(cabecalhos_usuario())
+                    headers["Prefer"] = "return=representation"
+                    resposta = requests.patch(endpoint, headers=headers,
+                        params={"id":"eq."+str(pessoa_editar["id"]), "select":"id"},
+                        json={"funcao":funcao_editada.strip() or None,
+                              "capacidade_disponivel_percentual":capacidade_editada,
+                              "ativo":ativo_editado}, timeout=15)
+                    resposta.raise_for_status()
+                    if len(resposta.json()) != 1:
+                        raise PermissionError("Atualização não confirmada.")
+                except (requests.RequestException, PermissionError, ValueError):
+                    st.error("Não foi possível atualizar a pessoa. Confira as permissões.")
+                else:
+                    st.success("Cadastro atualizado.")
                     st.rerun()
     with aba_csv:
         st.markdown("O arquivo deve conter a coluna obrigatória `nome`. Colunas opcionais: `funcao`, `email_demo`, `capacidade_disponivel_percentual`.")
@@ -1049,13 +1084,13 @@ def pagina_administracao():
                    "Perfil":u["perfil_global"], "Situação":"Ativo" if u["ativo"] else "Inativo"}
                   for u in sorted(usuarios,key=lambda x:x["nome"])],
                  hide_index=True,use_container_width=True)
-    st.subheader("Permissões por usuário")
+    st.subheader("Vínculos de projeto por pessoa")
     selecionado = st.selectbox("Selecione o usuário", usuarios,
                               format_func=lambda u:u["nome"])
     identificador = selecionado["id"]
     linhas = [{"Projeto":mapa_projetos.get(a["projeto_id"],"Projeto indisponível"),
                "Papel":a["papel"], "Dedicação (%)": a.get("dedicacao_percentual") if a.get("dedicacao_percentual") is not None else "Não informada"} for a in acessos if a["usuario_id"]==identificador]
-    st.markdown("**Projetos autorizados**")
+    st.markdown("**Projetos vinculados**")
     if linhas:
         st.dataframe(linhas,hide_index=True,use_container_width=True)
     else:
