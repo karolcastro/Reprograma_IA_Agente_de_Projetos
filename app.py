@@ -815,7 +815,7 @@ def pagina_administracao():
         st.error("Acesso restrito.")
         return
     try:
-        usuarios = consultar("perfis_usuarios", "id,nome,perfil_global,ativo")
+        usuarios = consultar("perfis_usuarios", "id,nome,perfil_global,ativo,funcao,capacidade_disponivel_percentual,email_demo")
         acessos = consultar("projeto_acessos", "usuario_id,projeto_id,papel,dedicacao_percentual")
         equipes = consultar("squads", "id,nome")
         membros = consultar("squad_membros", "usuario_id,squad_id,papel")
@@ -826,9 +826,122 @@ def pagina_administracao():
         st.warning("A consulta administrativa não retornou os usuários esperados. Verifique as permissões RLS.")
         return
     a,b,c = st.columns(3)
-    a.metric("Usuários cadastrados", len(usuarios))
-    b.metric("Usuários ativos", sum(bool(u["ativo"]) for u in usuarios))
+    a.metric("Pessoas cadastradas", len(usuarios))
+    b.metric("Pessoas ativas", sum(bool(u["ativo"]) for u in usuarios))
     c.metric("Squads", len(equipes))
+
+    st.subheader("👤 Cadastro de pessoas e capacidade")
+    st.caption("As pessoas cadastradas aqui são recursos de planejamento, não contas de acesso. Somente a gerente de projetos entra no sistema.")
+    aba_manual, aba_csv = st.tabs(["Cadastrar pessoa", "Importar CSV"])
+    with aba_manual:
+        with st.form("form_nova_pessoa", clear_on_submit=True):
+            nome_nova = st.text_input("Nome completo")
+            funcao_nova = st.text_input("Cargo / especialidade")
+            email_novo = st.text_input("E-mail de contato (opcional)")
+            capacidade_nova = st.slider("Capacidade disponível (%)", 0, 100, 100, step=5,
+                                        help="100% equivale a 1,0 FTE disponível.")
+            salvar_pessoa = st.form_submit_button("Cadastrar pessoa", type="primary")
+        if salvar_pessoa:
+            nome_limpo = nome_nova.strip()
+            email_limpo = email_novo.strip().lower() or None
+            duplicada = any(str(u.get("nome","")).strip().casefold() == nome_limpo.casefold()
+                            for u in usuarios if nome_limpo)
+            email_repetido = bool(email_limpo and any(
+                str(u.get("email_demo") or "").strip().lower() == email_limpo for u in usuarios))
+            if not nome_limpo:
+                st.error("Informe o nome da pessoa.")
+            elif duplicada:
+                st.error("Já existe uma pessoa com esse nome. Confira o cadastro antes de continuar.")
+            elif email_repetido:
+                st.error("Esse e-mail já está cadastrado.")
+            else:
+                try:
+                    endpoint = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/perfis_usuarios"
+                    headers = dict(cabecalhos_usuario())
+                    headers["Prefer"] = "return=representation"
+                    payload = {"nome": nome_limpo, "funcao": funcao_nova.strip() or None,
+                               "email_demo": email_limpo, "perfil_global": "membro",
+                               "ativo": True, "capacidade_disponivel_percentual": capacidade_nova}
+                    resposta = requests.post(endpoint, headers=headers, json=payload, timeout=15)
+                    resposta.raise_for_status()
+                    if len(resposta.json()) != 1:
+                        raise PermissionError("Cadastro não confirmado.")
+                except (requests.RequestException, PermissionError, ValueError):
+                    st.error("Não foi possível cadastrar a pessoa. Verifique as permissões e os dados.")
+                else:
+                    st.success("Pessoa cadastrada como recurso, sem vínculo de login.")
+                    st.rerun()
+    with aba_csv:
+        st.markdown("O arquivo deve conter a coluna obrigatória `nome`. Colunas opcionais: `funcao`, `email_demo`, `capacidade_disponivel_percentual`.")
+        arquivo_pessoas = st.file_uploader("Selecione um CSV", type=["csv"], key="csv_pessoas")
+        if arquivo_pessoas is not None:
+            try:
+                df_pessoas = pd.read_csv(arquivo_pessoas)
+                df_pessoas.columns = [str(c).strip().lower() for c in df_pessoas.columns]
+                if "nome" not in df_pessoas.columns:
+                    st.error("O CSV precisa ter uma coluna chamada nome.")
+                else:
+                    if "funcao" not in df_pessoas.columns:
+                        df_pessoas["funcao"] = ""
+                    if "email_demo" not in df_pessoas.columns:
+                        df_pessoas["email_demo"] = ""
+                    if "capacidade_disponivel_percentual" not in df_pessoas.columns:
+                        df_pessoas["capacidade_disponivel_percentual"] = 100
+                    df_pessoas["nome"] = df_pessoas["nome"].fillna("").astype(str).str.strip()
+                    df_pessoas["email_demo"] = df_pessoas["email_demo"].fillna("").astype(str).str.strip().str.lower()
+                    df_pessoas["funcao"] = df_pessoas["funcao"].fillna("").astype(str).str.strip()
+                    df_pessoas["capacidade_disponivel_percentual"] = pd.to_numeric(
+                        df_pessoas["capacidade_disponivel_percentual"], errors="coerce")
+                    st.dataframe(df_pessoas, hide_index=True, use_container_width=True)
+                    if st.button("Importar pessoas do CSV", type="primary", key="importar_csv_pessoas"):
+                        existentes_nomes = {str(u.get("nome","")).strip().casefold() for u in usuarios}
+                        existentes_emails = {str(u.get("email_demo") or "").strip().lower() for u in usuarios if u.get("email_demo")}
+                        inseridas, ignoradas, erros_csv = 0, [], []
+                        endpoint = str(st.secrets["SUPABASE_URL"]).rstrip("/") + "/rest/v1/perfis_usuarios"
+                        headers = dict(cabecalhos_usuario())
+                        headers["Prefer"] = "return=representation"
+                        vistos_csv = set()
+                        for idx, linha in df_pessoas.iterrows():
+                            nome_linha = str(linha["nome"]).strip()
+                            email_linha = str(linha["email_demo"]).strip().lower() or None
+                            capacidade_linha = linha["capacidade_disponivel_percentual"]
+                            if not nome_linha:
+                                ignoradas.append(f"Linha {idx+2}: nome vazio")
+                                continue
+                            if nome_linha.casefold() in existentes_nomes or nome_linha.casefold() in vistos_csv:
+                                ignoradas.append(f"{nome_linha}: nome duplicado")
+                                continue
+                            if pd.isna(capacidade_linha) or capacidade_linha < 0 or capacidade_linha > 100:
+                                ignoradas.append(f"{nome_linha}: capacidade deve ser de 0 a 100")
+                                continue
+                            if email_linha and (email_linha in existentes_emails):
+                                ignoradas.append(f"{nome_linha}: e-mail já cadastrado")
+                                continue
+                            payload = {"nome": nome_linha, "funcao": str(linha["funcao"]).strip() or None,
+                                       "email_demo": email_linha, "perfil_global": "membro", "ativo": True,
+                                       "capacidade_disponivel_percentual": int(capacidade_linha)}
+                            try:
+                                resp = requests.post(endpoint, headers=headers, json=payload, timeout=15)
+                                resp.raise_for_status()
+                                if len(resp.json()) != 1:
+                                    raise PermissionError("Cadastro não confirmado")
+                                inseridas += 1
+                                existentes_nomes.add(nome_linha.casefold())
+                                vistos_csv.add(nome_linha.casefold())
+                                if email_linha:
+                                    existentes_emails.add(email_linha)
+                            except (requests.RequestException, PermissionError, ValueError):
+                                erros_csv.append(nome_linha)
+                        if inseridas:
+                            st.success(f"{inseridas} pessoa(s) importada(s).")
+                        if ignoradas:
+                            st.warning("Registros ignorados: " + "; ".join(ignoradas[:12]))
+                        if erros_csv:
+                            st.error("Falha ao importar: " + ", ".join(erros_csv[:12]))
+                        if inseridas:
+                            st.rerun()
+            except (ValueError, UnicodeDecodeError, pd.errors.ParserError):
+                st.error("Não foi possível ler o CSV. Salve o arquivo como CSV UTF-8 e tente novamente.")
     mapa_projetos = {p["id"]: p["nome"] for p in projetos}
     mapa_equipes = {e["id"]: e["nome"] for e in equipes}
     st.subheader("📊 Pessoas e projetos — visão consolidada")
@@ -861,6 +974,7 @@ def pagina_administracao():
                 "Projeto": f"{icone} {nome_projeto}",
                 "Pessoas": len(participantes),
                 "Dedicação planejada somada (%)": sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes),
+                "FTE utilizado": round(sum(int(dedicacao.get((uid,pid)) or 0) for uid, _ in participantes) / 100, 2),
                 "Sem dedicação informada": sum(dedicacao.get((uid,pid)) is None for uid, _ in participantes),
                 "Participantes e papéis": ", ".join(f'{usuarios_ativos[uid]["nome"]} ({papel})'
                                                     for uid, papel in participantes) or "Nenhum vínculo",
@@ -875,15 +989,20 @@ def pagina_administracao():
                 "Perfil": pessoa["perfil_global"],
                 "Projetos": len(atribuicoes),
                 "Dedicação total (%)": totais_dedicacao[uid],
+                "FTE alocado": round(totais_dedicacao[uid] / 100, 2),
+                "Capacidade disponível (%)": int(pessoa.get("capacidade_disponivel_percentual", 100)),
+                "FTE disponível": round(int(pessoa.get("capacidade_disponivel_percentual", 100)) / 100, 2),
+                "Saldo FTE": round((int(pessoa.get("capacidade_disponivel_percentual", 100)) - totais_dedicacao[uid]) / 100, 2),
                 "Alocações sem percentual": sem_definicao[uid],
-                "Capacidade": ("Não definida" if sem_definicao[uid] else
-                              "Acima de 100%" if totais_dedicacao[uid] > 100 else
-                              "100% alocado" if totais_dedicacao[uid] == 100 else "Disponibilidade parcial"),
+                "Situação": ("Alocações incompletas" if sem_definicao[uid] else
+                             "Sobrealocado" if totais_dedicacao[uid] > int(pessoa.get("capacidade_disponivel_percentual", 100)) else
+                             "Capacidade completa" if totais_dedicacao[uid] == int(pessoa.get("capacidade_disponivel_percentual", 100)) else
+                             "Capacidade disponível"),
                 "Projetos e papéis": ", ".join(f'{mapa_projetos[pid]} ({papel})'
                                                 for pid, papel in atribuicoes) or "Nenhum vínculo",
             })
         st.dataframe(linhas_pessoas, hide_index=True, use_container_width=True)
-    st.caption("Dedicação é uma estimativa de planejamento. Valores não informados não são tratados como 0% de disponibilidade; acima de 100% indica possível sobrecarga, não comprovação de horas trabalhadas.")
+    st.caption("FTE = dedicação percentual dividida por 100. A capacidade disponível é cadastrada por pessoa. Alocações sem percentual tornam o cálculo incompleto; os indicadores são planejamento, não apontamento de horas.")
     st.subheader("⚖️ Planejar dedicação por projeto")
     pessoa_carga = st.selectbox("Profissional", sorted(usuarios_ativos.values(), key=lambda u:u["nome"].casefold()),
                                 format_func=lambda u:u["nome"], key="pessoa_dedicacao")
@@ -922,10 +1041,12 @@ def pagina_administracao():
                     st.warning(f"Atenção: a dedicação planejada soma {total_previsto}% em todos os projetos deste profissional.")
                 st.success("Dedicação atualizada.")
                 st.rerun()
-    st.subheader("Cadastro central")
-    st.caption("Somente nome, perfil e situação são exibidos. E-mails, senhas e tokens não aparecem neste painel.")
-    st.dataframe([{"Nome":u["nome"], "Perfil":u["perfil_global"],
-                   "Situação":"Ativo" if u["ativo"] else "Inativo"}
+    st.subheader("Cadastro central de pessoas")
+    st.caption("Recursos sem login no sistema. O e-mail, quando informado, é apenas dado de contato.")
+    st.dataframe([{"Nome":u["nome"], "Cargo / especialidade":u.get("funcao") or "—",
+                   "Capacidade disponível (%)":int(u.get("capacidade_disponivel_percentual",100)),
+                   "Capacidade (FTE)":round(int(u.get("capacidade_disponivel_percentual",100))/100,2),
+                   "Perfil":u["perfil_global"], "Situação":"Ativo" if u["ativo"] else "Inativo"}
                   for u in sorted(usuarios,key=lambda x:x["nome"])],
                  hide_index=True,use_container_width=True)
     st.subheader("Permissões por usuário")
