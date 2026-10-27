@@ -1135,13 +1135,13 @@ def pagina_administracao():
     if operacao == "Adicionar vínculo":
         disponiveis = [p for p in opcoes if p["id"] not in existentes]
         if not disponiveis:
-            st.info("Este usuário já possui acesso a todos os itens deste tipo.")
+            st.info("Esta pessoa já está vinculada a todos os itens deste tipo.")
         else:
             itens = st.multiselect("Adicionar a um ou mais " + ("projetos" if tipo == "Projetos" else "squads"),
                                    disponiveis, format_func=rotulo,
-                                   help="Selecione vários itens. Cada vínculo terá seu próprio registro e permissão.")
+                                   help="Cada vínculo é registrado separadamente para manter a rastreabilidade.")
             papel_novo = st.selectbox("Papel", papeis)
-            confirmar = st.checkbox("Confirmo a concessão dos acessos selecionados", key="confirma_concessao")
+            confirmar = st.checkbox("Confirmo os vínculos selecionados", key="confirma_concessao")
             if st.button("Adicionar vínculos", disabled=not (confirmar and itens), type="primary"):
                 incluidos = 0
                 falhas = []
@@ -1155,20 +1155,20 @@ def pagina_administracao():
                 if incluidos:
                     st.success(f"{incluidos} vínculo(s) criado(s) e enviado(s) para auditoria.")
                 if falhas:
-                    st.error("Não foi possível conceder acesso a: " + ", ".join(falhas) +
+                    st.error("Não foi possível criar vínculo para: " + ", ".join(falhas) +
                              ". Confira os vínculos antes de tentar novamente.")
                 else:
                     st.rerun()
     else:
         revogaveis = [p for p in opcoes if p["id"] in existentes]
         if selecionado.get("perfil_global") == "admin":
-            st.warning("A revogação de vínculos de administradores está bloqueada nesta interface.")
+            st.warning("O vínculo da gerente não pode ser removido por esta interface.")
         elif not revogaveis:
             st.info("Este usuário não possui vínculos deste tipo.")
         else:
-            item = st.selectbox("Revogar acesso a", revogaveis, format_func=rotulo)
+            item = st.selectbox("Remover vínculo com", revogaveis, format_func=rotulo)
             st.warning("A remoção encerra o vínculo da pessoa com este item.")
-            confirmar = st.checkbox("Confirmo a revogação deste acesso", key="confirma_revogacao")
+            confirmar = st.checkbox("Confirmo a remoção deste vínculo", key="confirma_revogacao")
             if st.button("Remover vínculo", disabled=not confirmar, type="primary"):
                 try:
                     alterar_vinculo(tabela, "remover",
