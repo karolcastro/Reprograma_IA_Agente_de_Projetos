@@ -1809,6 +1809,27 @@ st.markdown("""
 .st-key-pf_topbar [data-testid="stPills"] button:hover{background:#D5E4F7!important;border-color:#9DB8D8!important}
 .st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"]{background:#6652A3!important;color:#FFFFFF!important;border-color:#55418F!important;box-shadow:0 2px 7px rgba(67,48,130,.2)!important}
 .st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"] *{color:#FFFFFF!important;opacity:1!important}
+
+/* CORREÇÃO DE CONTRASTE DO MENU: prevalece sobre os estilos nativos do Streamlit */
+div.st-key-pf_topbar div[data-testid="stPills"] button,
+div.st-key-pf_topbar div[data-testid="stPills"] button[kind],
+div.st-key-pf_topbar div[data-testid="stPills"] button[data-testid] {
+  background:#E5EFFB!important;background-color:#E5EFFB!important;background-image:none!important;
+  color:#243F70!important;border:1px solid #B8CBE2!important;box-shadow:none!important;opacity:1!important;
+}
+div.st-key-pf_topbar div[data-testid="stPills"] button * {color:#243F70!important;opacity:1!important}
+div.st-key-pf_topbar div[data-testid="stPills"] button:hover,
+div.st-key-pf_topbar div[data-testid="stPills"] button[kind]:hover {
+  background:#D5E4F7!important;background-color:#D5E4F7!important;background-image:none!important;
+  color:#243F70!important;border-color:#8EACD0!important;
+}
+div.st-key-pf_topbar div[data-testid="stPills"] button[aria-pressed="true"],
+div.st-key-pf_topbar div[data-testid="stPills"] button[aria-pressed="true"]:hover {
+  background:#6652A3!important;background-color:#6652A3!important;background-image:none!important;
+  color:#FFFFFF!important;border:1px solid #55418F!important;box-shadow:0 2px 7px rgba(67,48,130,.2)!important;
+}
+div.st-key-pf_topbar div[data-testid="stPills"] button[aria-pressed="true"] * {color:#FFFFFF!important;opacity:1!important}
+
 .st-key-logout_button button,.st-key-pf_topbar .st-key-logout_button button{background:#F5F7FA!important;border:1px solid #DCE5EC!important;color:#183B55!important;padding:.22rem .6rem!important;min-height:29px!important;height:29px!important}
 @media(max-width:800px){.st-key-pf_topbar{padding:10px!important}.pf-brand{font-size:1.5rem!important}.st-key-pf_topbar [data-testid="stPills"] button{font-size:.73rem!important}}
 </style>
