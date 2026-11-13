@@ -1803,10 +1803,12 @@ st.markdown("""
 .pf-subtitle{color:#738398!important;letter-spacing:.13em!important}
 .pf-user{color:#173A55!important}
 .pf-role{color:#6B7E90!important}
-.st-key-pf_topbar{background:#FFFFFF!important;border:1px solid #E1E7EE!important;border-top:3px solid #C9A66B!important;border-radius:13px!important;padding:13px 18px 8px!important;box-shadow:0 5px 24px rgba(20,45,75,.055)!important}
-.st-key-pf_topbar [data-testid="stPills"] button{background:#FFFFFF!important;border:1px solid transparent!important;color:#324C63!important;font-size:.78rem!important;border-radius:8px!important;min-height:30px!important;padding:.24rem .56rem!important}
-.st-key-pf_topbar [data-testid="stPills"] button:hover{background:#F0F5F8!important;border-color:#E1E7EE!important}
-.st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"]{background:#E7F0F4!important;color:#0B6077!important;border-color:#B9D2DC!important}
+.st-key-pf_topbar{background:linear-gradient(110deg,#EAF1FA 0%,#E9E8F7 100%)!important;border:1px solid #D5DFEC!important;border-top:3px solid #6652A3!important;border-radius:13px!important;padding:13px 18px 8px!important;box-shadow:0 5px 24px rgba(36,63,112,.09)!important}
+.st-key-pf_topbar [data-testid="stPills"] button{background:#E5EFFB!important;border:1px solid #C8D8EB!important;color:#243F70!important;font-size:.78rem!important;font-weight:700!important;border-radius:9px!important;min-height:32px!important;padding:.28rem .68rem!important}
+.st-key-pf_topbar [data-testid="stPills"] button *{color:#243F70!important;opacity:1!important}
+.st-key-pf_topbar [data-testid="stPills"] button:hover{background:#D5E4F7!important;border-color:#9DB8D8!important}
+.st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"]{background:#6652A3!important;color:#FFFFFF!important;border-color:#55418F!important;box-shadow:0 2px 7px rgba(67,48,130,.2)!important}
+.st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"] *{color:#FFFFFF!important;opacity:1!important}
 .st-key-logout_button button,.st-key-pf_topbar .st-key-logout_button button{background:#F5F7FA!important;border:1px solid #DCE5EC!important;color:#183B55!important;padding:.22rem .6rem!important;min-height:29px!important;height:29px!important}
 @media(max-width:800px){.st-key-pf_topbar{padding:10px!important}.pf-brand{font-size:1.5rem!important}.st-key-pf_topbar [data-testid="stPills"] button{font-size:.73rem!important}}
 </style>
