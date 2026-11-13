@@ -1810,6 +1810,41 @@ st.markdown("""
 .st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"]{background:#6652A3!important;color:#FFFFFF!important;border-color:#55418F!important;box-shadow:0 2px 7px rgba(67,48,130,.2)!important}
 .st-key-pf_topbar [data-testid="stPills"] button[aria-pressed="true"] *{color:#FFFFFF!important;opacity:1!important}
 
+/* MENU CLARO FIXO — navegação com botões nativos, sem pills escuros */
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button[kind="secondary"] {
+  background:#E5EFFB!important;
+  background-color:#E5EFFB!important;
+  background-image:none!important;
+  color:#243F70!important;
+  border:1px solid #B8CBE2!important;
+  box-shadow:none!important;
+  font-weight:700!important;
+  min-height:36px!important;
+  opacity:1!important;
+}
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button *,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button p {
+  color:#243F70!important;
+  opacity:1!important;
+}
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:hover,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:focus,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:active {
+  background:#D5E4F7!important;
+  background-color:#D5E4F7!important;
+  background-image:none!important;
+  color:#243F70!important;
+  border-color:#8EACD0!important;
+  box-shadow:0 1px 4px rgba(36,63,112,.12)!important;
+}
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:hover *,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:focus *,
+.st-key-pf_topbar .st-key-pf_menu div[data-testid="stButton"] > button:active * {
+  color:#243F70!important;
+}
+
+
 /* CORREÇÃO DE CONTRASTE DO MENU: prevalece sobre os estilos nativos do Streamlit */
 div.st-key-pf_topbar div[data-testid="stPills"] button,
 div.st-key-pf_topbar div[data-testid="stPills"] button[kind],
@@ -1852,9 +1887,12 @@ with st.container(key="pf_topbar"):
     rotulos_menu={"Visão executiva":"📊 Visão","Detalhes do projeto":"📁 Projetos","Análise de atas":"🤖 Atas","Equipes e recursos":"👥 Equipes","Minha conta":"🔒 Conta","Central de aprovações":"📥 Aprovações","Gerenciar projetos":"📝 Gestão","Pessoas e capacidade":"🛡️ Capacidade"}
     opcoes_menu=[rotulos_menu.get(p.title,p.title) for p in paginas]
     destinos_menu=dict(zip(opcoes_menu,paginas))
-    selecao_menu=st.pills("Navegação",options=opcoes_menu,selection_mode="single",default=None,label_visibility="collapsed",key="menu_compacto")
-    if selecao_menu:
-        st.switch_page(destinos_menu[selecao_menu])
+    with st.container(key="pf_menu"):
+        colunas_menu=st.columns(len(opcoes_menu),gap="small")
+        for indice,(rotulo,coluna) in enumerate(zip(opcoes_menu,colunas_menu)):
+            with coluna:
+                if st.button(rotulo,key=f"pf_nav_{indice}",use_container_width=True,type="secondary"):
+                    st.switch_page(destinos_menu[rotulo])
 if st.session_state.pop("ir_para_visao_executiva", False):
     st.switch_page(pagina_principal)
 navegacao.run()
